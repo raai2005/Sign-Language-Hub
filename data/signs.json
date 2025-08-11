@@ -1,0 +1,252 @@
+{
+  "letters": [
+    {
+      "id": "A",
+      "letter": "A",
+      "description": "Make a fist with your thumb pointing up, then place it against your chest.",
+      "videoPath": "/videos/letter-a.mp4",
+      "thumbnail": "/videos/thumbnails/letter-a.jpg"
+    },
+    {
+      "id": "B",
+      "letter": "B",
+      "description": "Hold your hand flat with fingers together and thumb tucked in, palm facing forward.",
+      "videoPath": "/videos/letter-b.mp4",
+      "thumbnail": "/videos/thumbnails/letter-b.jpg"
+    },
+    {
+      "id": "C",
+      "letter": "C",
+      "description": "Curve your fingers to form a 'C' shape, with your thumb and fingers forming a semi-circle.",
+      "videoPath": "/videos/letter-c.mp4",
+      "thumbnail": "/videos/thumbnails/letter-c.jpg"
+    },
+    {
+      "id": "D",
+      "letter": "D",
+      "description": "Point your index finger up, with other fingers curled into your palm.",
+      "videoPath": "/videos/letter-d.mp4",
+      "thumbnail": "/videos/thumbnails/letter-d.jpg"
+    },
+    {
+      "id": "E",
+      "letter": "E",
+      "description": "Make a fist with all fingers curled tightly, thumb across the palm.",
+      "videoPath": "/videos/letter-e.mp4",
+      "thumbnail": "/videos/thumbnails/letter-e.jpg"
+    },
+    {
+      "id": "F",
+      "letter": "F",
+      "description": "Touch your index finger and thumb together, other fingers extended.",
+      "videoPath": "/videos/letter-f.mp4",
+      "thumbnail": "/videos/thumbnails/letter-f.jpg"
+    },
+    {
+      "id": "G",
+      "letter": "G",
+      "description": "Point your index finger and thumb to form an 'L', other fingers curled.",
+      "videoPath": "/videos/letter-g.mp4",
+      "thumbnail": "/videos/thumbnails/letter-g.jpg"
+    },
+    {
+      "id": "H",
+      "letter": "H",
+      "description": "Point your index and middle fingers together, other fingers curled.",
+      "videoPath": "/videos/letter-h.mp4",
+      "thumbnail": "/videos/thumbnails/letter-h.jpg"
+    },
+    {
+      "id": "I",
+      "letter": "I",
+      "description": "Point your pinky finger up, other fingers curled into your palm.",
+      "videoPath": "/videos/letter-i.mp4",
+      "thumbnail": "/videos/thumbnails/letter-i.jpg"
+    },
+    {
+      "id": "J",
+      "letter": "J",
+      "description": "Point your pinky finger up and trace a 'J' shape in the air.",
+      "videoPath": "/videos/letter-j.mp4",
+      "thumbnail": "/videos/thumbnails/letter-j.jpg"
+    },
+    {
+      "id": "K",
+      "letter": "K",
+      "description": "Point your index and middle fingers up in a 'V' shape, thumb between them.",
+      "videoPath": "/videos/letter-k.mp4",
+      "thumbnail": "/videos/thumbnails/letter-k.jpg"
+    },
+    {
+      "id": "L",
+      "letter": "L",
+      "description": "Point your index finger and thumb to form an 'L' shape.",
+      "videoPath": "/videos/letter-l.mp4",
+      "thumbnail": "/videos/thumbnails/letter-l.jpg"
+    },
+    {
+      "id": "M",
+      "letter": "M",
+      "description": "Tuck your thumb between your ring and middle fingers, other fingers curled.",
+      "videoPath": "/videos/letter-m.mp4",
+      "thumbnail": "/videos/thumbnails/letter-m.jpg"
+    },
+    {
+      "id": "N",
+      "letter": "N",
+      "description": "Tuck your thumb between your middle and index fingers, other fingers curled.",
+      "videoPath": "/videos/letter-n.mp4",
+      "thumbnail": "/videos/thumbnails/letter-n.jpg"
+    },
+    {
+      "id": "O",
+      "letter": "O",
+      "description": "Form a circle with your thumb and fingers touching.",
+      "videoPath": "/videos/letter-o.mp4",
+      "thumbnail": "/videos/thumbnails/letter-o.jpg"
+    },
+    {
+      "id": "P",
+      "letter": "P",
+      "description": "Point your index finger down, other fingers curled, thumb across palm.",
+      "videoPath": "/videos/letter-p.mp4",
+      "thumbnail": "/videos/thumbnails/letter-p.jpg"
+    },
+    {
+      "id": "Q",
+      "letter": "Q",
+      "description": "Point your index finger down and to the side, other fingers curled.",
+      "videoPath": "/videos/letter-q.mp4",
+      "thumbnail": "/videos/thumbnails/letter-q.jpg"
+    },
+    {
+      "id": "R",
+      "letter": "R",
+      "description": "Cross your index and middle fingers, other fingers curled.",
+      "videoPath": "/videos/letter-r.mp4",
+      "thumbnail": "/videos/thumbnails/letter-r.jpg"
+    },
+    {
+      "id": "S",
+      "letter": "S",
+      "description": "Make a fist with your thumb over your fingers.",
+      "videoPath": "/videos/letter-s.mp4",
+      "thumbnail": "/videos/thumbnails/letter-s.jpg"
+    },
+    {
+      "id": "T",
+      "letter": "T",
+      "description": "Point your index finger up, thumb across palm, other fingers curled.",
+      "videoPath": "/videos/letter-t.mp4",
+      "thumbnail": "/videos/thumbnails/letter-t.jpg"
+    },
+    {
+      "id": "U",
+      "letter": "U",
+      "description": "Point your index and middle fingers up together, other fingers curled.",
+      "videoPath": "/videos/letter-u.mp4",
+      "thumbnail": "/videos/thumbnails/letter-u.jpg"
+    },
+    {
+      "id": "V",
+      "letter": "V",
+      "description": "Point your index and middle fingers up in a 'V' shape, other fingers curled.",
+      "videoPath": "/videos/letter-v.mp4",
+      "thumbnail": "/videos/thumbnails/letter-v.jpg"
+    },
+    {
+      "id": "W",
+      "letter": "W",
+      "description": "Point your index, middle, and ring fingers up, other fingers curled.",
+      "videoPath": "/videos/letter-w.mp4",
+      "thumbnail": "/videos/thumbnails/letter-w.jpg"
+    },
+    {
+      "id": "X",
+      "letter": "X",
+      "description": "Point your index finger and bend it, other fingers curled.",
+      "videoPath": "/videos/letter-x.mp4",
+      "thumbnail": "/videos/thumbnails/letter-x.jpg"
+    },
+    {
+      "id": "Y",
+      "letter": "Y",
+      "description": "Point your thumb and pinky finger out, other fingers curled.",
+      "videoPath": "/videos/letter-y.mp4",
+      "thumbnail": "/videos/thumbnails/letter-y.jpg"
+    },
+    {
+      "id": "Z",
+      "letter": "Z",
+      "description": "Point your index finger and trace a 'Z' shape in the air.",
+      "videoPath": "/videos/letter-z.mp4",
+      "thumbnail": "/videos/thumbnails/letter-z.jpg"
+    }
+  ],
+  "words": [
+    {
+      "id": "hello",
+      "word": "Hello",
+      "description": "Wave your hand from side to side with your palm facing forward.",
+      "videoPath": "/videos/word-hello.mp4",
+      "thumbnail": "/videos/thumbnails/word-hello.jpg",
+      "category": "greetings"
+    },
+    {
+      "id": "thank-you",
+      "word": "Thank You",
+      "description": "Touch your chin with your fingertips, then move your hand forward and down.",
+      "videoPath": "/videos/word-thank-you.mp4",
+      "thumbnail": "/videos/thumbnails/word-thank-you.jpg",
+      "category": "greetings"
+    },
+    {
+      "id": "please",
+      "word": "Please",
+      "description": "Place your hand flat on your chest and move it in a circular motion.",
+      "videoPath": "/videos/word-please.mp4",
+      "thumbnail": "/videos/thumbnails/word-please.jpg",
+      "category": "greetings"
+    },
+    {
+      "id": "yes",
+      "word": "Yes",
+      "description": "Make a fist and move it up and down like nodding your head.",
+      "videoPath": "/videos/word-yes.mp4",
+      "thumbnail": "/videos/thumbnails/word-yes.jpg",
+      "category": "responses"
+    },
+    {
+      "id": "no",
+      "word": "No",
+      "description": "Touch your index and middle fingers to your thumb, then snap them apart.",
+      "videoPath": "/videos/word-no.mp4",
+      "thumbnail": "/videos/thumbnails/word-no.jpg",
+      "category": "responses"
+    },
+    {
+      "id": "help",
+      "word": "Help",
+      "description": "Place your right hand on your left palm, then lift both hands up together.",
+      "videoPath": "/videos/word-help.mp4",
+      "thumbnail": "/videos/thumbnails/word-help.jpg",
+      "category": "actions"
+    },
+    {
+      "id": "love",
+      "word": "Love",
+      "description": "Cross your arms over your chest in a hugging motion.",
+      "videoPath": "/videos/word-love.mp4",
+      "thumbnail": "/videos/thumbnails/word-love.jpg",
+      "category": "emotions"
+    },
+    {
+      "id": "family",
+      "word": "Family",
+      "description": "Make 'F' signs with both hands and circle them around each other.",
+      "videoPath": "/videos/word-family.mp4",
+      "thumbnail": "/videos/thumbnails/word-family.jpg",
+      "category": "people"
+    }
+  ]
+} 
