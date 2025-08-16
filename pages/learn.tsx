@@ -235,10 +235,10 @@ export default function Learn() {
           <title>Learn ISL A-Z - Indian Sign Language Learning</title>
           <meta name="description" content="Learn all letters A-Z in Indian Sign Language with video demonstrations." />
         </Head>
-        <div className="min-h-screen dynamic-bg">
+        <div className="min-h-screen classic-bg">
           <Navbar />
           <div className="flex items-center justify-center min-h-screen">
-            <div className="loading-spinner"></div>
+            <div className="classic-loading"></div>
           </div>
         </div>
       </>
@@ -252,60 +252,66 @@ export default function Learn() {
         <meta name="description" content="Learn all letters A-Z in Indian Sign Language with video demonstrations." />
       </Head>
 
-      <div className="min-h-screen dynamic-bg">
+      <div className="min-h-screen classic-bg">
         <Navbar />
         
         {/* Header */}
-        <section className="high-contrast-bg shadow-strong relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-orange-50/40 to-red-50/40"></div>
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <section className="classic-bg-paper relative border-b-4 border-gray-800">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
             <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl mb-6 float card-3d shadow-strong">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              <div className="inline-block p-4 bg-white border-4 border-gray-800 mb-8 old-school-card">
+                <svg className="w-12 h-12 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                 </svg>
               </div>
-              <h1 className="text-4xl md:text-5xl font-bold high-contrast-text mb-4">
-                Learn ISL Alphabet
+              <h1 className="text-5xl md:text-6xl font-bold classic-title mb-6 uppercase">
+                ISL ALPHABET COURSE
               </h1>
-              <p className="text-lg high-contrast-text max-w-2xl mx-auto leading-relaxed">
-                Master all 26 letters of the Indian Sign Language alphabet with 
-                interactive learning and clear hand sign demonstrations.
-              </p>
+              <div className="w-32 h-2 bg-gray-800 mx-auto mb-8"></div>
+              <div className="max-w-4xl mx-auto border-l-4 border-gray-800 pl-8">
+                <p className="text-xl classic-subtitle leading-relaxed italic">
+                  "A comprehensive study of the twenty-six letters comprising the Indian Sign Language alphabet. 
+                  Each character presented with methodical instruction and proper hand positioning techniques 
+                  essential for accurate communication."
+                </p>
+              </div>
             </div>
           </div>
         </section>
 
         {/* Search and Filter */}
-        <section className="high-contrast-bg border-b border-white/20">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="max-w-md mx-auto mb-6">
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
+        <section className="classic-bg-dark border-b-4 border-gray-800">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div className="max-w-lg mx-auto mb-8">
+              <div className="old-school-card p-1">
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <svg className="h-6 w-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="SEARCH LETTERS..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="block w-full pl-14 pr-4 py-4 border-4 border-gray-800 bg-white placeholder-gray-600 classic-focus text-xl font-bold uppercase tracking-wide"
+                    style={{fontFamily: 'Georgia, serif'}}
+                  />
                 </div>
-                <input
-                  type="text"
-                  placeholder="Search letters..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="block w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl leading-5 bg-white/90 backdrop-blur-md placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-lg shadow-soft transition-all duration-200"
-                />
               </div>
             </div>
 
             {/* Category Filter */}
-            <div className="flex flex-wrap justify-center gap-3">
+            <div className="flex flex-wrap justify-center gap-4">
               {categories.map((category) => (
                 <button
                   key={category.id}
                   onClick={() => setSelectedCategory(category.id)}
-                  className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 nav-item-3d focus-ring ${
+                  className={`${
                     selectedCategory === category.id
-                      ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-strong'
-                      : 'high-contrast-text hover:text-orange-600 hover:bg-white/20'
+                      ? 'btn-classic-primary'
+                      : 'btn-classic-secondary'
                   }`}
                 >
                   {category.name} ({category.count})
@@ -316,68 +322,66 @@ export default function Learn() {
         </section>
 
         {/* Letters Grid */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           {filteredLetters.length === 0 ? (
-            <div className="text-center py-12">
-              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.47-.881-6.08-2.33" />
-              </svg>
-              <h3 className="mt-2 text-sm font-medium high-contrast-text">No letters found</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                Try adjusting your search terms.
+            <div className="text-center py-16 old-school-card p-12">
+              <div className="w-16 h-16 bg-gray-800 border-4 border-gray-600 flex items-center justify-center mx-auto mb-6">
+                <svg className="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.47-.881-6.08-2.33" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold classic-title mb-4 uppercase">No Letters Found</h3>
+              <p className="classic-subtitle">
+                Please adjust your search criteria and try again.
               </p>
             </div>
           ) : (
-                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-               {filteredLetters.map((letter) => (
-                                   <div
-                    key={letter.id}
-                    className="bg-white/95 rounded-2xl shadow-soft hover:shadow-strong transition-all duration-500 transform hover:-translate-y-2 card-3d p-6 cursor-pointer letter-card"
-                    onClick={() => handleLetterClick(letter)}
-                  >
-                   <div className="text-center letter-card-content">
-                     <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-strong">
-                       <span className="text-2xl font-bold text-white">{letter.letter}</span>
-                     </div>
-                     <h3 className="text-xl font-bold high-contrast-text mb-2">{letter.letter}</h3>
-                                                                 <div className="flex-grow">
-                        <p className="text-sm text-gray-600 mb-0">{letter.description}</p>
-                      </div>
-                      <div className="letter-card-button">
-                        <button className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white text-sm font-semibold py-2 px-4 rounded-xl hover:from-orange-600 hover:to-red-600 transition-all duration-300 transform hover:scale-105 shadow-soft hover:shadow-strong">
-                          Click to see hand gesture
-                        </button>
-                      </div>
-                   </div>
-                 </div>
-               ))}
-             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+              {filteredLetters.map((letter) => (
+                <div
+                  key={letter.id}
+                  className="classic-letter-card bg-white p-6 cursor-pointer text-center"
+                  onClick={() => handleLetterClick(letter)}
+                >
+                  <div className="mb-6">
+                    <div className="w-20 h-20 bg-gray-800 border-4 border-gray-600 flex items-center justify-center mx-auto mb-4">
+                      <span className="text-3xl font-bold text-white" style={{fontFamily: 'Georgia, serif'}}>{letter.letter}</span>
+                    </div>
+                    <h3 className="text-2xl font-bold classic-title mb-3 uppercase">Letter {letter.letter}</h3>
+                    <div className="border-l-4 border-gray-800 pl-4 mb-6">
+                      <p className="text-sm classic-subtitle leading-relaxed">{letter.description}</p>
+                    </div>
+                    <button className="btn-classic-primary w-full">
+                      VIEW DEMONSTRATION
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </section>
 
         {/* Progress Section */}
-        <section className="high-contrast-bg border-t border-white/20">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <section className="classic-bg-dark border-t-4 border-gray-800">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <div className="text-center">
-              <h2 className="text-2xl font-bold high-contrast-text mb-4">
-                Your Progress
+              <h2 className="text-3xl font-bold classic-title mb-8 uppercase">
+                Academic Progress
               </h2>
-              <div className="flex justify-center items-center space-x-8">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-orange-600">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="old-school-card p-6 text-center">
+                  <div className="text-5xl font-bold classic-title mb-2">
                     {filteredLetters.length}
                   </div>
-                  <div className="text-sm text-gray-500">Letters Available</div>
+                  <div className="classic-subtitle uppercase tracking-wide">Letters Available</div>
                 </div>
-                <div className="text-gray-300">|</div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-green-600">0</div>
-                  <div className="text-sm text-gray-500">Completed</div>
+                <div className="old-school-card p-6 text-center">
+                  <div className="text-5xl font-bold classic-title mb-2">0</div>
+                  <div className="classic-subtitle uppercase tracking-wide">Completed</div>
                 </div>
-                <div className="text-gray-300">|</div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-blue-600">26</div>
-                  <div className="text-sm text-gray-500">Total ISL Letters</div>
+                <div className="old-school-card p-6 text-center">
+                  <div className="text-5xl font-bold classic-title mb-2">26</div>
+                  <div className="classic-subtitle uppercase tracking-wide">Total ISL Letters</div>
                 </div>
               </div>
             </div>
@@ -385,29 +389,32 @@ export default function Learn() {
         </section>
 
         {/* Exam Section */}
-        <section className="py-16 px-4 sm:px-6 lg:px-8">
+        <section className="py-20 px-4 sm:px-6 lg:px-8 classic-bg-paper">
           <div className="max-w-4xl mx-auto text-center">
-            <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl p-8 shadow-strong">
-              <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <div className="old-school-card p-12">
+              <div className="w-24 h-24 bg-gray-800 border-4 border-gray-600 flex items-center justify-center mx-auto mb-8">
+                <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h2 className="text-3xl font-bold text-white mb-4">
-                Ready to Test Yourself?
+              <h2 className="text-4xl font-bold classic-title mb-6 uppercase">
+                Examination Preparation
               </h2>
-              <p className="text-lg text-white/90 mb-8 max-w-2xl mx-auto">
-                Take our AI-powered exam with 5 different question sets. 
-                Each set contains 10 unique questions generated by Gemini AI!
-              </p>
-              <Link 
-                href="/test-sets"
-                className="bg-white/95 backdrop-blur-md text-orange-600 hover:bg-white font-bold py-4 px-8 rounded-xl transition-all duration-500 transform hover:scale-105 hover:-translate-y-1 inline-flex items-center shadow-strong focus-ring"
-              >
-                Ready to Test Yourself
-                <svg className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
+              <div className="w-32 h-2 bg-gray-800 mx-auto mb-8"></div>
+              <div className="border-l-4 border-gray-800 pl-8 mb-10">
+                <p className="text-xl classic-subtitle leading-relaxed italic">
+                  "Assess your knowledge through our comprehensive examination system featuring 
+                  five distinct test sets, each containing ten carefully crafted questions powered 
+                  by advanced artificial intelligence technology."
+                </p>
+              </div>
+              <Link href="/test-sets">
+                <button className="btn-classic-primary inline-flex items-center">
+                  PROCEED TO EXAMINATIONS
+                  <svg className="ml-3 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </button>
               </Link>
             </div>
           </div>

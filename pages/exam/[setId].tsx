@@ -320,7 +320,7 @@ export default function ExamPage() {
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Generating AI Questions...</h2>
-          <p className="text-gray-600">Please wait while Gemini AI creates your personalized test questions.</p>
+          <p className="text-gray-600">Please wait while Groq AI creates your personalized test questions.</p>
         </div>
       </div>
     );

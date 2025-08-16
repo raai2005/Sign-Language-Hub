@@ -13,95 +13,102 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <div className="min-h-screen dynamic-bg">
+      <div className="min-h-screen classic-bg">
         <Navbar />
         
         {/* Hero Section */}
-        <section className="relative py-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
-          {/* Enhanced Background decoration with Indian colors */}
-          <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-r from-orange-200 to-red-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse-soft"></div>
-            <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-r from-green-200 to-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse-soft" style={{animationDelay: '1s'}}></div>
-            <div className="absolute top-40 left-40 w-60 h-60 bg-gradient-to-r from-yellow-200 to-orange-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse-soft" style={{animationDelay: '2s'}}></div>
-          </div>
+        <section className="relative py-20 px-4 sm:px-6 lg:px-8">
+          {/* Classic decorative border */}
+          <div className="absolute top-10 left-10 right-10 h-2 bg-repeat-x opacity-20" 
+               style={{backgroundImage: 'url("data:image/svg+xml,%3Csvg width="20" height="8" viewBox="0 0 20 8" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath d="M0 4l4-4 4 4 4-4 4 4 4-4v4H0z" fill="%23666"/%3E%3C/svg%3E")'}}></div>
+          <div className="absolute bottom-10 left-10 right-10 h-2 bg-repeat-x opacity-20" 
+               style={{backgroundImage: 'url("data:image/svg+xml,%3Csvg width="20" height="8" viewBox="0 0 20 8" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath d="M0 4l4-4 4 4 4-4 4 4 4-4v4H0z" fill="%23666"/%3E%3C/svg%3E")'}}></div>
           
-          <div className="relative max-w-7xl mx-auto">
+          <div className="relative max-w-6xl mx-auto">
             <div className="text-center">
-              <div className="mb-8">
-                <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl mb-6 float card-3d shadow-strong">
-                  <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              <div className="mb-12">
+                <div className="inline-block p-4 bg-white border-4 border-gray-800 mb-8 old-school-card">
+                  <svg className="w-16 h-16 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                   </svg>
                 </div>
-                <h1 className="text-4xl md:text-6xl font-bold high-contrast-text mb-6 animate-fade-in">
-                  Learn Indian Sign Language
-                  <span className="block text-gradient bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-                    Made Easy
-                  </span>
+                <h1 className="text-5xl md:text-7xl font-bold classic-title mb-8">
+                  LEARN INDIAN SIGN LANGUAGE
+                  <div className="mt-4 text-3xl md:text-4xl text-gray-700 classic-subtitle">
+                    The Traditional Way
+                  </div>
                 </h1>
               </div>
-              <p className="text-xl high-contrast-text mb-8 max-w-3xl mx-auto animate-slide-up">
-                Master Indian Sign Language (ISL) through interactive videos, 
-                step-by-step instructions. Perfect for beginners 
-                and those looking to improve their signing skills in India.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-6 justify-center animate-slide-up">
-                <Link 
-                  href="/learn"
-                  className="btn-primary inline-flex items-center justify-center group focus-ring"
-                >
-                  Start Learning A-Z
-                  <svg className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              <div className="max-w-4xl mx-auto mb-12">
+                <p className="text-xl classic-subtitle text-center leading-relaxed border-l-4 border-gray-800 pl-6 italic">
+                  "Master Indian Sign Language (ISL) through our time-tested, methodical approach. 
+                  Designed for beginners and advanced learners who appreciate structured, comprehensive education 
+                  in the art of sign language communication."
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-8 justify-center">
+                <button className="btn-classic-primary inline-flex items-center justify-center">
+                  BEGIN YOUR JOURNEY
+                  <svg className="ml-3 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
-                </Link>
-
+                </button>
+                <button className="btn-classic-secondary inline-flex items-center justify-center">
+                  VIEW CURRICULUM
+                  <svg className="ml-3 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </button>
               </div>
             </div>
           </div>
         </section>
 
         {/* Features Section */}
-        <section className="py-20 px-4 sm:px-6 lg:px-8 high-contrast-bg relative overflow-hidden">
-          {/* Enhanced Background decoration */}
-          <div className="absolute inset-0">
-            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-orange-50/40 to-red-50/40"></div>
-          </div>
+        <section className="py-20 px-4 sm:px-6 lg:px-8 classic-bg-paper relative">
+          {/* Classic ornamental borders */}
+          <div className="absolute top-0 left-0 w-full h-4 bg-gray-800"></div>
+          <div className="absolute bottom-0 left-0 w-full h-4 bg-gray-800"></div>
           
-          <div className="relative max-w-7xl mx-auto">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold high-contrast-text mb-4">
-                Why Choose Our ISL Platform?
+          <div className="relative max-w-6xl mx-auto">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl md:text-5xl font-bold classic-title mb-6 border-b-4 border-gray-800 pb-4 inline-block">
+                WHY CHOOSE OUR ACADEMY?
               </h2>
-              <p className="text-lg high-contrast-text max-w-2xl mx-auto">
-                Our comprehensive learning platform makes Indian Sign Language accessible to everyone across India.
+              <p className="text-xl classic-subtitle max-w-3xl mx-auto mt-8">
+                Established educational excellence in Indian Sign Language instruction, 
+                following traditional teaching methodologies proven over decades.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="text-center p-8 bg-white/90 backdrop-blur-md rounded-2xl shadow-soft hover:shadow-strong transition-all duration-500 transform hover:-translate-y-2 card-3d">
-                <div className="w-20 h-20 bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-strong">
-                  <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+              <div className="old-school-card p-8 text-center">
+                <div className="w-24 h-24 bg-gray-800 border-4 border-gray-600 flex items-center justify-center mx-auto mb-6">
+                  <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold high-contrast-text mb-4">ISL Video Tutorials</h3>
-                <p className="text-gray-700 text-sm leading-relaxed">
-                  High-quality video demonstrations for every letter and common word in Indian Sign Language.
+                <h3 className="text-2xl font-bold classic-title mb-4 uppercase letter-spacing-wide">
+                  Professional Video Library
+                </h3>
+                <p className="text-gray-700 leading-relaxed">
+                  Comprehensive video demonstrations for every letter and essential vocabulary 
+                  in Indian Sign Language, filmed by certified instructors.
                 </p>
               </div>
 
-
-
-              <div className="text-center p-8 bg-white/90 backdrop-blur-md rounded-2xl shadow-soft hover:shadow-strong transition-all duration-500 transform hover:-translate-y-2 card-3d">
-                <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-strong">
-                  <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="old-school-card p-8 text-center">
+                <div className="w-24 h-24 bg-gray-800 border-4 border-gray-600 flex items-center justify-center mx-auto mb-6">
+                  <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold high-contrast-text mb-4">Step-by-Step Guides</h3>
-                <p className="text-gray-700 text-sm leading-relaxed">
-                  Detailed descriptions and instructions for perfecting each ISL sign.
+                <h3 className="text-2xl font-bold classic-title mb-4 uppercase letter-spacing-wide">
+                  Structured Curriculum
+                </h3>
+                <p className="text-gray-700 leading-relaxed">
+                  Time-tested progressive learning methodology with detailed instructions 
+                  and systematic skill development for mastering ISL fundamentals.
                 </p>
               </div>
             </div>
@@ -109,29 +116,38 @@ export default function Home() {
         </section>
 
         {/* CTA Section */}
-        <section className="py-20 px-4 sm:px-6 lg:px-8 gradient-bg relative overflow-hidden">
-          {/* Enhanced Background decoration */}
-          <div className="absolute inset-0">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl animate-pulse-soft"></div>
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-3xl animate-pulse-soft" style={{animationDelay: '1s'}}></div>
-          </div>
+        <section className="py-20 px-4 sm:px-6 lg:px-8 classic-bg-dark relative">
+          {/* Classic frame decoration */}
+          <div className="absolute inset-4 border-4 border-gray-800 opacity-30"></div>
+          <div className="absolute inset-8 border-2 border-gray-600 opacity-20"></div>
           
           <div className="relative max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              Ready to Start Your ISL Journey?
-            </h2>
-            <p className="text-lg text-white/90 mb-8 max-w-2xl mx-auto">
-              Join thousands of learners who have already mastered Indian Sign Language with our platform.
-            </p>
-            <Link 
-              href="/learn"
-              className="bg-white/95 backdrop-blur-md text-orange-600 hover:bg-white font-bold py-4 px-8 rounded-xl transition-all duration-500 transform hover:scale-105 hover:-translate-y-1 inline-flex items-center shadow-strong focus-ring"
-            >
-              Begin Learning Now
-              <svg className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </Link>
+            <div className="bg-white p-12 old-school-card">
+              <h2 className="text-4xl md:text-5xl font-bold classic-title mb-6 uppercase">
+                ENROLL TODAY
+              </h2>
+              <div className="w-24 h-1 bg-gray-800 mx-auto mb-8"></div>
+              <p className="text-xl classic-subtitle mb-10 max-w-2xl mx-auto leading-relaxed">
+                Join our distinguished academy and become part of a tradition of excellence 
+                in Indian Sign Language education. Your journey to fluent communication begins here.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-6 justify-center">
+                <Link href="/learn">
+                  <button className="btn-classic-primary">
+                    START LEARNING NOW
+                    <svg className="ml-3 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                  </button>
+                </Link>
+                <button className="btn-classic-secondary">
+                  CONTACT ADMISSIONS
+                  <svg className="ml-3 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
         </section>
 

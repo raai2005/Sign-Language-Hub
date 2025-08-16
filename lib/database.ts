@@ -35,7 +35,7 @@ export interface QuestionFeedback {
   correctAnswer: string;
   isCorrect: boolean;
   explanation: string;
-  geminiAnalysis?: string;
+  groqAnalysis?: string;
 }
 
 // In-memory storage for demonstration
@@ -178,14 +178,20 @@ export class ExamDatabase {
     const cutoffTime = new Date(Date.now() - olderThanHours * 60 * 60 * 1000);
     let deletedCount = 0;
 
-    for (const [sessionId, session] of examSessions.entries()) {
+    // Collect IDs to delete first to avoid mutating during iteration
+    const toDelete: string[] = [];
+    examSessions.forEach((session, sessionId) => {
       if (session.startedAt < cutoffTime && !session.completedAt) {
-        examSessions.delete(sessionId);
-        examAnswers.delete(sessionId);
-        examResults.delete(sessionId);
-        deletedCount++;
+        toDelete.push(sessionId);
       }
-    }
+    });
+
+    toDelete.forEach((sessionId) => {
+      examSessions.delete(sessionId);
+      examAnswers.delete(sessionId);
+      examResults.delete(sessionId);
+      deletedCount++;
+    });
 
     return deletedCount;
   }

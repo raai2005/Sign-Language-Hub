@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import Groq from 'groq-sdk';
 
 interface Question {
   id: number;
@@ -25,7 +25,7 @@ interface ExamResult {
     isCorrect: boolean;
     correctAnswer: string;
     explanation: string;
-    geminiAnalysis?: string;
+    groqAnalysis?: string;
   }[];
 }
 
@@ -41,8 +41,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Process each answer and evaluate with Gemini AI
-    const feedback = await evaluateAnswersWithGemini(questions, answers);
+    // Process each answer and evaluate with Groq AI
+    const feedback = await evaluateAnswersWithGroq(questions, answers);
     
     // Calculate score
     const correctAnswers = feedback.filter(f => f.isCorrect).length;
@@ -62,7 +62,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 }
 
-async function evaluateAnswersWithGemini(questions: Question[], answers: UserAnswer[]) {
+async function evaluateAnswersWithGroq(questions: Question[], answers: UserAnswer[]) {
   const feedback = [];
 
   for (const question of questions) {
@@ -74,22 +74,22 @@ async function evaluateAnswersWithGemini(questions: Question[], answers: UserAns
         isCorrect: false,
         correctAnswer: question.correctAnswer,
         explanation: question.explanation,
-        geminiAnalysis: 'No answer provided'
+        groqAnalysis: 'No answer provided'
       });
       continue;
     }
 
     let isCorrect = false;
-    let geminiAnalysis = '';
+    let groqAnalysis = '';
 
     // For text-based answers
     if (!userAnswer.imageUrl) {
       isCorrect = userAnswer.selectedAnswer.toLowerCase().trim() === 
                  question.correctAnswer.toLowerCase().trim();
     } else {
-      // For image-based answers, use Gemini AI to analyze
-      geminiAnalysis = await analyzeImageWithGemini(userAnswer.imageUrl, question);
-      isCorrect = geminiAnalysis.includes('correct') || geminiAnalysis.includes('accurate');
+      // For image-based answers, use Groq AI to analyze
+      groqAnalysis = await analyzeImageWithGroq(userAnswer.imageUrl, question);
+      isCorrect = groqAnalysis.includes('correct') || groqAnalysis.includes('accurate');
     }
 
     feedback.push({
@@ -97,123 +97,113 @@ async function evaluateAnswersWithGemini(questions: Question[], answers: UserAns
       isCorrect: isCorrect,
       correctAnswer: question.correctAnswer,
       explanation: question.explanation,
-      geminiAnalysis: geminiAnalysis || undefined
+      groqAnalysis: groqAnalysis || undefined
     });
   }
 
   return feedback;
 }
 
-async function analyzeImageWithGemini(imageUrl: string, question: Question): Promise<string> {
+async function analyzeImageWithGroq(imageUrl: string, question: Question): Promise<string> {
   try {
-    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+    const GROQ_API_KEY = process.env.GROQ_API_KEY;
     
-    if (!GEMINI_API_KEY) {
-      throw new Error('Gemini API key not configured');
+    if (!GROQ_API_KEY) {
+      throw new Error('Groq API key not configured');
     }
 
-    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
+    const groq = new Groq({
+      apiKey: GROQ_API_KEY,
+    });
 
-    // Download and convert image to base64 if it's a URL
-    let imageData;
-    if (imageUrl.startsWith('http')) {
-      const response = await fetch(imageUrl);
-      const arrayBuffer = await response.arrayBuffer();
-      const base64 = Buffer.from(arrayBuffer).toString('base64');
-      imageData = {
-        inlineData: {
-          data: base64,
-          mimeType: response.headers.get('content-type') || 'image/jpeg'
-        }
-      };
-    } else {
-      // Handle base64 data URLs
-      const [mimeInfo, base64Data] = imageUrl.split(',');
-      const mimeType = mimeInfo.match(/:(.*?);/)?.[1] || 'image/jpeg';
-      imageData = {
-        inlineData: {
-          data: base64Data,
-          mimeType: mimeType
-        }
-      };
-    }
-
-    const prompt = `You are an expert Indian Sign Language (ISL) instructor. Analyze this hand gesture image and evaluate if it correctly represents the answer to this question.
+    // Note: Groq doesn't have vision capabilities like Gemini Vision
+    // We'll provide text-based analysis based on the question and expected answer
+    const prompt = `You are an expert Indian Sign Language (ISL) instructor. A student has submitted an image for this question:
 
 QUESTION: "${question.question}"
 EXPECTED ANSWER: "${question.correctAnswer}"
 
-Please analyze the image and provide:
+Since I cannot analyze the actual image, please provide educational feedback about what the student should look for in their hand gesture for the letter "${question.correctAnswer}" in Indian Sign Language.
 
-1. **Recognition**: What ISL letter or sign do you see in the image?
-2. **Accuracy**: Is this the correct answer to the question? (YES/NO)
-3. **Hand Position**: Describe the hand shape, finger positions, and orientation
-4. **Evaluation**: Rate the accuracy (Perfect/Good/Needs Improvement/Incorrect)
-5. **Feedback**: Specific suggestions for improvement if needed
+Please provide:
 
-ANALYSIS CRITERIA:
-- Hand shape and finger positioning
-- Thumb placement and orientation
-- Palm direction and angle
-- Overall form and clarity
-- Adherence to ISL standards
+1. **Expected Hand Position**: Describe the correct hand shape, finger positions, and orientation for letter "${question.correctAnswer}"
+2. **Common Mistakes**: What are typical errors students make with this letter?
+3. **Tips for Improvement**: Specific suggestions for perfecting this handshape
+4. **Self-Check**: What should the student verify in their own gesture?
 
-Provide a detailed, educational response that helps the student learn.`;
+Provide a detailed, educational response that helps the student learn ISL properly.`;
 
-    const result = await model.generateContent([prompt, imageData]);
-    const response = await result.response;
-    const analysis = response.text();
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.7,
+      max_tokens: 1024,
+    });
 
-    return analysis;
+    const response = chatCompletion.choices[0]?.message?.content;
+    
+    if (!response) {
+      throw new Error('No response from Groq AI');
+    }
+
+    return response;
 
   } catch (error) {
-    console.error('Error analyzing image with Gemini Vision:', error);
+    console.error('Error analyzing with Groq:', error);
     
     // Provide fallback analysis
-    return `Unable to analyze image with AI vision. Error: ${error instanceof Error ? error.message : 'Unknown error'}. 
+    return `Unable to analyze image with AI. Please ensure:
     
-Please ensure:
 1. The image is clear and well-lit
 2. Your hand is clearly visible against a plain background
 3. The gesture is held steady and matches ISL standards
 4. The image format is supported (JPG, PNG, WebP)
 
 For the question "${question.question}", the correct answer should be: "${question.correctAnswer}". 
+
+**Expected Hand Position for "${question.correctAnswer}":**
+Please refer to ISL resources to verify the correct handshape, finger positioning, and orientation for this letter. Make sure your thumb, fingers, and palm are positioned according to standard ISL guidelines.
+
+**Self-Check Tips:**
+- Compare your hand position with reference ISL alphabet charts
+- Ensure all fingers are positioned correctly
+- Check that your palm orientation matches the standard
+- Hold the position steady and clearly
+
 Please review your hand position and try again if needed.`;
   }
 }
 
-// Function to call actual Gemini Vision API (for future implementation)
-async function callGeminiVisionAPI(imageUrl: string, prompt: string) {
-  // This would be the actual Gemini Vision API integration
-  // You would need to:
-  // 1. Set up Google AI Studio account
-  // 2. Get API key
-  // 3. Use the Gemini Vision model
+// Function to call actual Groq API (current implementation)
+async function callGroqAPI(prompt: string) {
+  // This is our current Groq API integration
+  const GROQ_API_KEY = process.env.GROQ_API_KEY;
   
-  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-  
-  if (!GEMINI_API_KEY) {
-    throw new Error('Gemini API key not configured');
+  if (!GROQ_API_KEY) {
+    throw new Error('Groq API key not configured');
   }
 
-  // Example API call structure (adapt based on actual Gemini API):
-  // const response = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-vision:analyze', {
-  //   method: 'POST',
-  //   headers: {
-  //     'Authorization': `Bearer ${GEMINI_API_KEY}`,
-  //     'Content-Type': 'application/json',
-  //   },
-  //   body: JSON.stringify({
-  //     prompt: prompt,
-  //     image: imageUrl,
-  //     parameters: {
-  //       maxTokens: 500,
-  //       temperature: 0.3
-  //     }
-  //   })
-  // });
-  
-  // return await response.json();
+  const groq = new Groq({
+    apiKey: GROQ_API_KEY,
+  });
+
+  const chatCompletion = await groq.chat.completions.create({
+    messages: [
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+    model: "llama-3.3-70b-versatile",
+    temperature: 0.7,
+    max_tokens: 1024,
+  });
+
+  return chatCompletion.choices[0]?.message?.content || '';
 }

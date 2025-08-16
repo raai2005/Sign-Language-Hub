@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import Groq from 'groq-sdk';
 
 interface Question {
   id: number;
@@ -9,7 +9,7 @@ interface Question {
   explanation: string;
 }
 
-// Fallback questions in case Gemini API fails
+// Fallback questions in case Groq API fails
 const fallbackQuestionSets: { [key: number]: Question[] } = {
   1: Array.from({ length: 10 }, (_, i) => {
     const letter = String.fromCharCode(65 + ((i + 0) % 26));
@@ -75,8 +75,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Generate questions using Gemini AI
-    const questions = await generateQuestionsWithGemini(setId);
+    // Generate questions using Groq AI
+    const questions = await generateQuestionsWithGroq(setId);
 
     res.status(200).json({
       questions: questions,
@@ -87,7 +87,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } catch (error) {
     console.error('Error generating questions:', error);
     
-    // Fallback to predefined questions if Gemini fails
+    // Fallback to predefined questions if Groq fails
     const fallbackQuestions = fallbackQuestionSets[setId] || fallbackQuestionSets[1];
     
     res.status(200).json({
@@ -100,17 +100,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 }
 
-async function generateQuestionsWithGemini(setId: number): Promise<Question[]> {
-  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+async function generateQuestionsWithGroq(setId: number): Promise<Question[]> {
+  const GROQ_API_KEY = process.env.GROQ_API_KEY;
   
-  if (!GEMINI_API_KEY) {
-    throw new Error('Gemini API key not configured');
+  if (!GROQ_API_KEY) {
+    throw new Error('Groq API key not configured');
   }
 
-  const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-  // Try multiple model versions for better compatibility
-  const modelCandidates = ["gemini-2.5-pro", "gemini-1.5-pro", "gemini-pro"] as const;
-  let model = genAI.getGenerativeModel({ model: modelCandidates[0] });
+  const groq = new Groq({
+    apiKey: GROQ_API_KEY,
+  });
 
   // Define difficulty levels and contexts
   const difficultyLevels = {
@@ -173,32 +172,34 @@ OUTPUT FORMAT (valid JSON only):
 Generate the 10 questions now for Set ${setId} (${difficulty.level} level).`;
 
   try {
-    let result;
-    let lastErr: any = null;
-    for (const name of modelCandidates) {
-      try {
-        model = genAI.getGenerativeModel({ model: name });
-        result = await model.generateContent(prompt);
-        break;
-      } catch (e) {
-        lastErr = e;
-        continue;
-      }
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.7,
+      max_tokens: 2048,
+    });
+
+    const response = chatCompletion.choices[0]?.message?.content;
+    
+    if (!response) {
+      throw new Error('No response from Groq AI');
     }
-    if (!result) throw lastErr || new Error('Failed to generate content');
-    const response = await result.response;
-    const text = response.text();
     
     // Extract JSON from response
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      throw new Error('Invalid JSON response from Gemini AI');
+      throw new Error('Invalid JSON response from Groq AI');
     }
     
     const parsedResponse = JSON.parse(jsonMatch[0]);
     
     if (!parsedResponse.questions || !Array.isArray(parsedResponse.questions)) {
-      throw new Error('Invalid question format from Gemini AI');
+      throw new Error('Invalid question format from Groq AI');
     }
 
     // Validate and format questions
@@ -220,7 +221,7 @@ Generate the 10 questions now for Set ${setId} (${difficulty.level} level).`;
     return questions.slice(0, 10);
 
   } catch (error) {
-    console.error('Gemini AI generation error:', error);
+    console.error('Groq AI generation error:', error);
     throw error;
   }
 }
