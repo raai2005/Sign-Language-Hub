@@ -19,6 +19,12 @@ interface UserAnswer {
   selectedAnswer: string;
   imageUrl?: string;
   timestamp: Date;
+  immediateAnalysis?: {
+    isCorrect: boolean;
+    confidence: number;
+    feedback: string;
+    analysis: string;
+  };
 }
 
 interface ExamResult {
@@ -52,6 +58,18 @@ export default function ExamPage() {
   const [countdown, setCountdown] = useState<number | null>(null);
   const [showAnswerConfirm, setShowAnswerConfirm] = useState(false);
   const [answerConfirmImage, setAnswerConfirmImage] = useState<string | null>(null);
+  const [immediateAnalysis, setImmediateAnalysis] = useState<{
+    isCorrect: boolean;
+    confidence: number;
+    feedback: string;
+    analysis: string;
+  } | null>(null);
+  const [showImmediateFeedback, setShowImmediateFeedback] = useState(false);
+  const [evaluatingImage, setEvaluatingImage] = useState(false);
+  const [cameraRetryCount, setCameraRetryCount] = useState(0);
+  const [showCameraFallback, setShowCameraFallback] = useState(false);
+  const [autoAdvanceTimer, setAutoAdvanceTimer] = useState<NodeJS.Timeout | null>(null);
+  const [autoAdvanceCountdown, setAutoAdvanceCountdown] = useState<number | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cameraCapture = useRef<CameraCapture | null>(null);
@@ -123,12 +141,13 @@ export default function ExamPage() {
 
   const captureImage = async () => {
     if (!isCameraSupported()) {
-      alert('Camera is not supported on this device/browser.');
+      setShowCameraFallback(true);
       return;
     }
 
-    // Open modal; camera will start in the effect once refs are mounted
+    // Reset states and open camera modal
     setCameraError(null);
+    setCameraRetryCount(0);
     setShowCamera(true);
   };
 
@@ -138,16 +157,55 @@ export default function ExamPage() {
       if (!showCamera || !videoRef.current || !canvasRef.current) return;
       try {
         setIsStartingCamera(true);
+        setCameraError(null);
         cameraCapture.current = new CameraCapture(videoRef.current, canvasRef.current);
         await cameraCapture.current.startCamera({ width: 640, height: 480, facingMode: 'user' });
         setIsStartingCamera(false);
+        setCameraRetryCount(0); // Reset retry count on success
         // Begin countdown for auto-capture
         setCountdown(5);
       } catch (err) {
         console.error('Error accessing camera:', err);
-        setCameraError('Unable to access camera. Please check permissions.');
         setIsStartingCamera(false);
-        setShowCamera(false);
+
+        // Determine error type and message
+        let errorMessage = 'Unable to access camera. ';
+        let canRetry = true;
+
+        if (err instanceof Error) {
+          if (err.name === 'NotAllowedError') {
+            errorMessage = 'Camera permission denied. Please allow camera access and try again.';
+            canRetry = false;
+          } else if (err.name === 'NotFoundError') {
+            errorMessage = 'No camera found on this device.';
+            canRetry = false;
+          } else if (err.name === 'NotReadableError') {
+            errorMessage = 'Camera is being used by another application.';
+          } else {
+            errorMessage = 'Camera access failed. Please check your settings.';
+          }
+        }
+
+        setCameraError(errorMessage);
+
+        // Auto-retry once for temporary issues
+        if (canRetry && cameraRetryCount < 1) {
+          console.log('Retrying camera access...');
+          setCameraRetryCount(prev => prev + 1);
+          setTimeout(() => {
+            if (showCamera) {
+              start(); // Retry
+            }
+          }, 2000);
+        } else {
+          // If retry fails or not allowed, show fallback after a brief delay
+          setTimeout(() => {
+            if (showCamera) {
+              setShowCamera(false);
+              setShowCameraFallback(true);
+            }
+          }, 3000);
+        }
       }
     };
 
@@ -162,9 +220,10 @@ export default function ExamPage() {
         }
         setCountdown(null);
         setIsStartingCamera(false);
+        setCameraError(null);
       }
     };
-  }, [showCamera]);
+  }, [showCamera, cameraRetryCount]);
 
   // Countdown effect to auto-capture
   useEffect(() => {
@@ -179,6 +238,57 @@ export default function ExamPage() {
     const timer = setTimeout(() => setCountdown((c) => (c ?? 0) - 1), 1000);
     return () => clearTimeout(timer);
   }, [countdown, showCamera]);
+
+  // Auto-advance after showing immediate feedback
+  useEffect(() => {
+    if (showImmediateFeedback && immediateAnalysis) {
+      // Clear any existing timer
+      if (autoAdvanceTimer) {
+        clearTimeout(autoAdvanceTimer);
+      }
+
+      // Start countdown from 4 seconds
+      setAutoAdvanceCountdown(4);
+
+      // Set new timer for auto-advance (4 seconds to give user time to read)
+      const timer = setTimeout(() => {
+        setShowImmediateFeedback(false);
+        setImmediateAnalysis(null);
+        setAutoAdvanceCountdown(null);
+        submitAnswer();
+      }, 4000);
+
+      setAutoAdvanceTimer(timer);
+
+      // Cleanup function
+      return () => {
+        if (timer) {
+          clearTimeout(timer);
+        }
+        setAutoAdvanceCountdown(null);
+      };
+    }
+  }, [showImmediateFeedback, immediateAnalysis]);
+
+  // Countdown timer for auto-advance
+  useEffect(() => {
+    if (autoAdvanceCountdown !== null && autoAdvanceCountdown > 0) {
+      const countdownTimer = setTimeout(() => {
+        setAutoAdvanceCountdown(autoAdvanceCountdown - 1);
+      }, 1000);
+
+      return () => clearTimeout(countdownTimer);
+    }
+  }, [autoAdvanceCountdown]);
+
+  // Cleanup timer on component unmount
+  useEffect(() => {
+    return () => {
+      if (autoAdvanceTimer) {
+        clearTimeout(autoAdvanceTimer);
+      }
+    };
+  }, []);
 
   const takePicture = async () => {
     if (!cameraCapture.current) return;
@@ -200,18 +310,68 @@ export default function ExamPage() {
         setSelectedAnswer(imageUrl);
         stopCamera();
 
-        // Show quick confirmation popup, then auto-advance
-        setAnswerConfirmImage(imageUrl);
-        setShowAnswerConfirm(true);
-        setTimeout(() => {
-          setShowAnswerConfirm(false);
-          // Proceed to next question automatically
-          submitAnswer();
-        }, 1200);
+        // Immediately evaluate the captured image with AI
+        setEvaluatingImage(true);
+
+        try {
+          console.log(`Immediately analyzing captured image for question ${currentQuestion.id}`);
+
+          const analysisResponse = await fetch('/api/analyze-image', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              imageUrl: imageUrl,
+              expectedLetter: currentQuestion.correctAnswer,
+              questionText: currentQuestion.question
+            }),
+          });
+
+          if (analysisResponse.ok) {
+            const analysisData = await analysisResponse.json();
+
+            if (analysisData.success && analysisData.result) {
+              setImmediateAnalysis({
+                isCorrect: analysisData.result.isCorrect,
+                confidence: analysisData.result.confidence,
+                feedback: analysisData.result.feedback,
+                analysis: analysisData.result.analysis
+              });
+
+              console.log(`AI Analysis: ${analysisData.result.isCorrect ? 'CORRECT' : 'INCORRECT'} (${analysisData.result.confidence}% confidence)`);
+            } else {
+              // Fallback analysis result
+              setImmediateAnalysis({
+                isCorrect: analysisData.result?.isCorrect || false,
+                confidence: analysisData.result?.confidence || 50,
+                feedback: analysisData.result?.feedback || 'Image analyzed with basic evaluation.',
+                analysis: analysisData.result?.analysis || 'Keep practicing!'
+              });
+            }
+          } else {
+            throw new Error('Analysis request failed');
+          }
+        } catch (analysisError) {
+          console.error('Error analyzing image:', analysisError);
+          // Provide basic feedback if analysis fails
+          setImmediateAnalysis({
+            isCorrect: false,
+            confidence: 0,
+            feedback: `For letter "${currentQuestion.correctAnswer}": ${currentQuestion.explanation}`,
+            analysis: 'Could not analyze image automatically. Please verify your gesture matches ISL standards.'
+          });
+        }
+
+        setEvaluatingImage(false);
+
+        // Show immediate feedback modal (auto-advance handled by useEffect)
+        setShowImmediateFeedback(true);
       }
     } catch (error) {
       console.error('Error capturing image:', error);
       setCameraError('Failed to capture image. Please try again.');
+      setEvaluatingImage(false);
     }
   };
 
@@ -224,18 +384,148 @@ export default function ExamPage() {
     setCameraError(null);
   };
 
-  const submitAnswer = async () => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file.');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image file too large. Please select an image under 5MB.');
+      return;
+    }
+
+    try {
+      setEvaluatingImage(true);
+
+      // Convert to base64 for upload
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const imageData = e.target?.result as string;
+
+        // Create a canvas to resize if needed
+        const img = new Image();
+        img.onload = async () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+
+          // Resize to reasonable dimensions
+          const maxSize = 800;
+          let { width, height } = img;
+
+          if (width > height && width > maxSize) {
+            height = (height * maxSize) / width;
+            width = maxSize;
+          } else if (height > maxSize) {
+            width = (width * maxSize) / height;
+            height = maxSize;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          ctx?.drawImage(img, 0, 0, width, height);
+
+          const compressedImage = canvas.toDataURL('image/jpeg', 0.8);
+
+          // Create a temporary canvas element for CameraCapture
+          const tempCanvas = document.createElement('canvas');
+          const tempVideo = document.createElement('video');
+
+          try {
+            // Create a temporary CameraCapture instance just for uploading
+            const tempCameraCapture = new CameraCapture(tempVideo, tempCanvas);
+
+            const imageUrl = await tempCameraCapture.uploadImage(
+              compressedImage,
+              currentQuestion.id,
+              parseInt(setId as string)
+            );
+
+            setCapturedImage(imageUrl);
+            setSelectedAnswer(imageUrl);
+            setShowCameraFallback(false);
+
+            // Immediately evaluate the uploaded image
+            const analysisResponse = await fetch('/api/analyze-image', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                imageUrl: imageUrl,
+                expectedLetter: currentQuestion.correctAnswer,
+                questionText: currentQuestion.question
+              }),
+            });
+
+            if (analysisResponse.ok) {
+              const analysisData = await analysisResponse.json();
+              setImmediateAnalysis({
+                isCorrect: analysisData.result?.isCorrect || false,
+                confidence: analysisData.result?.confidence || 50,
+                feedback: analysisData.result?.feedback || 'Image uploaded successfully.',
+                analysis: analysisData.result?.analysis || 'Keep practicing!'
+              });
+            } else {
+              setImmediateAnalysis({
+                isCorrect: false,
+                confidence: 50,
+                feedback: 'Image uploaded but could not be analyzed automatically. Please verify your gesture matches ISL standards.',
+                analysis: 'Upload successful - manual verification recommended.'
+              });
+            }
+
+            setEvaluatingImage(false);
+            setShowImmediateFeedback(true);
+
+          } catch (error) {
+            console.error('Error uploading image:', error);
+            setEvaluatingImage(false);
+            alert('Failed to upload image. Please try again.');
+          }
+        };
+        img.src = imageData;
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Error processing file:', error);
+      setEvaluatingImage(false);
+      alert('Error processing image file.');
+    }
+  };
+
+  const skipQuestion = () => {
+    setShowCameraFallback(false);
+    // Set a default answer to allow proceeding
+    setSelectedAnswer('Skipped - Camera unavailable');
+
+    // Add a skipped answer without image
+    setImmediateAnalysis({
+      isCorrect: false,
+      confidence: 0,
+      feedback: `Question skipped due to camera issues. The correct sign for "${currentQuestion.correctAnswer}" is: ${currentQuestion.explanation}`,
+      analysis: 'Question was skipped. Please practice this sign using ISL reference materials.'
+    });
+
+    setShowImmediateFeedback(true);
+  }; const submitAnswer = async () => {
     if (!selectedAnswer) return;
 
     setSubmitting(true);
     const currentQuestion = questions[currentQuestionIndex];
 
-    // Create user answer object
+    // Create user answer object with immediate analysis
     const userAnswer: UserAnswer = {
       questionId: currentQuestion.id,
       selectedAnswer: selectedAnswer,
       imageUrl: capturedImage || undefined,
-      timestamp: new Date()
+      timestamp: new Date(),
+      immediateAnalysis: immediateAnalysis || undefined
     };
 
     // Save answer to database
@@ -263,6 +553,7 @@ export default function ExamPage() {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
       setSelectedAnswer('');
       setCapturedImage(null);
+      setImmediateAnalysis(null);
     } else {
       // Complete exam and get results
       await completeExam(newAnswers);
@@ -336,67 +627,72 @@ export default function ExamPage() {
           <Navbar />
 
           <div className="pt-24 pb-16">
-            <div className="max-w-6xl mx-auto px-4">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
               {/* Results Header */}
-              <div className="text-center mb-12">
-                <div className={`w-24 h-24 mx-auto mb-6 border-4 border-gray-800 flex items-center justify-center old-school-card ${examResult.score >= 8 ? 'bg-green-600' : examResult.score >= 6 ? 'bg-yellow-600' : 'bg-red-600'
+              <div className="text-center mb-16">
+                <div className={`w-32 h-32 mx-auto mb-8 border-4 border-gray-800 flex items-center justify-center old-school-card shadow-lg ${examResult.score >= 8 ? 'bg-green-600' : examResult.score >= 6 ? 'bg-yellow-600' : 'bg-red-600'
                   }`}>
-                  <span className="text-3xl text-white font-bold">
+                  <span className="text-4xl score-percentage">
                     {Math.round((examResult.score / examResult.totalQuestions) * 100)}%
                   </span>
                 </div>
-                <h1 className="text-4xl font-bold classic-title mb-6 uppercase">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold classic-title mb-8 uppercase px-4">
                   {testSetTitles[setId as string]} - Examination Complete!
                 </h1>
-                <div className="w-32 h-2 bg-gray-800 mx-auto mb-8"></div>
-                <div className="max-w-4xl mx-auto border-l-4 border-gray-800 pl-8">
-                  <p className="text-xl classic-subtitle italic">
-                    Final Score: {examResult.score} out of {examResult.totalQuestions} questions answered correctly.
+                <div className="w-32 h-2 bg-gray-800 mx-auto mb-10"></div>
+                <div className="max-w-4xl mx-auto border-l-4 border-gray-800 pl-8 bg-white p-6 old-school-card">
+                  <p className="text-xl sm:text-2xl classic-subtitle italic">
+                    Final Score: <span className="font-bold">{examResult.score}</span> out of <span className="font-bold">{examResult.totalQuestions}</span> questions answered correctly.
                   </p>
                 </div>
               </div>
 
               {/* Detailed Feedback */}
-              <div className="space-y-8">
+              <div className="space-y-8 mb-16">
+                <h2 className="text-2xl font-bold classic-title text-center mb-12 uppercase">
+                  Detailed Question Review
+                </h2>
                 {examResult.feedback.map((feedback, index) => {
                   const question = questions.find(q => q.id === feedback.questionId);
                   const userAnswer = examResult.answers.find(a => a.questionId === feedback.questionId);
 
                   return (
-                    <div key={feedback.questionId} className="old-school-card bg-white p-6">
-                      <div className="flex items-start space-x-4">
-                        <div className={`w-8 h-8 border-2 border-gray-800 flex items-center justify-center flex-shrink-0 ${feedback.isCorrect ? 'bg-green-600' : 'bg-red-600'
+                    <div key={feedback.questionId} className="old-school-card bg-white p-8 shadow-lg">
+                      <div className="flex items-start space-x-6">
+                        <div className={`w-12 h-12 border-2 border-gray-800 flex items-center justify-center flex-shrink-0 ${feedback.isCorrect ? 'bg-green-600' : 'bg-red-600'
                           }`}>
                           {feedback.isCorrect ? (
-                            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20" strokeWidth={3}>
+                            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20" strokeWidth={3}>
                               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                             </svg>
                           ) : (
-                            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20" strokeWidth={3}>
+                            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20" strokeWidth={3}>
                               <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                             </svg>
                           )}
                         </div>
                         <div className="flex-1">
-                          <h3 className="text-lg font-bold classic-title mb-4 uppercase">
+                          <h3 className="text-xl font-bold classic-title mb-6 uppercase">
                             Question {index + 1}: {question?.question}
                           </h3>
 
                           {userAnswer?.imageUrl && (
-                            <div className="mb-4">
-                              <p className="text-sm classic-subtitle mb-2 italic">Your Submitted Image:</p>
-                              <img src={userAnswer.imageUrl} alt="Your answer" className="retro-image w-32 h-32 object-cover" />
+                            <div className="mb-6">
+                              <p className="text-base classic-subtitle mb-3 italic uppercase font-semibold">Your Submitted Image:</p>
+                              <img src={userAnswer.imageUrl} alt="Your answer" className="retro-image w-40 h-40 object-cover border-4 border-gray-800" />
                             </div>
                           )}
 
                           {!feedback.isCorrect && (
-                            <div className="mb-4 border-l-4 border-red-600 pl-4">
-                              <p className="text-sm text-red-700 mb-1 font-bold">Your Answer: {userAnswer?.selectedAnswer}</p>
-                              <p className="text-sm text-green-700 mb-1 font-bold">Correct Answer: {feedback.correctAnswer}</p>
+                            <div className="mb-6 border-l-4 border-red-600 pl-6 bg-red-50 p-4">
+                              <p className="text-base text-red-700 mb-2 font-bold">Your Answer: {userAnswer?.selectedAnswer}</p>
+                              <p className="text-base text-green-700 mb-2 font-bold">Correct Answer: {feedback.correctAnswer}</p>
                             </div>
                           )}
 
-                          <p className="classic-subtitle text-sm italic border-l-4 border-gray-800 pl-4">{feedback.explanation}</p>
+                          <div className="border-l-4 border-gray-800 pl-6 bg-gray-50 p-4">
+                            <p className="classic-subtitle text-base italic leading-relaxed">{feedback.explanation}</p>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -492,8 +788,8 @@ export default function ExamPage() {
                       key={index}
                       onClick={() => option === 'Capture Image' ? captureImage() : handleAnswerSelect(option)}
                       className={`w-full p-4 text-left border-3 border-gray-800 transition-all duration-300 classic-focus ${selectedAnswer === option
-                          ? 'bg-gray-800 text-white font-bold'
-                          : 'bg-white hover:bg-gray-100 classic-subtitle'
+                        ? 'bg-gray-800 text-white font-bold'
+                        : 'bg-white hover:bg-gray-100 classic-subtitle'
                         }`}
                     >
                       {option === 'Capture Image' ? (
@@ -522,18 +818,68 @@ export default function ExamPage() {
 
               {/* Camera Modal */}
               {showCamera && (
-                <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-                  <div className="old-school-card bg-white p-8 max-w-2xl w-full mx-4">
+                <div
+                  className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
+                  onClick={(e) => {
+                    // Only allow closing via buttons, not backdrop clicks
+                    if (e.target === e.currentTarget) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }
+                  }}
+                  onMouseMove={(e) => {
+                    // Prevent any mouse movement from affecting the modal
+                    e.stopPropagation();
+                  }}
+                  style={{
+                    pointerEvents: 'auto',
+                    userSelect: 'none',
+                    cursor: 'default'
+                  }}
+                >
+                  <div
+                    className="old-school-card modal-card bg-white p-8 max-w-2xl w-full mx-4"
+                    onClick={(e) => {
+                      // Prevent clicks inside modal from bubbling up
+                      e.stopPropagation();
+                    }}
+                    style={{
+                      pointerEvents: 'auto',
+                      position: 'relative',
+                      zIndex: 1
+                    }}
+                  >
                     <h3 className="text-xl font-bold classic-title text-center mb-6 uppercase">Capture Your Sign</h3>
 
                     {cameraError ? (
                       <div className="text-center py-8">
+                        <div className="w-16 h-16 mx-auto mb-4 border-4 border-red-600 rounded-full flex items-center justify-center bg-red-100">
+                          <svg className="w-8 h-8 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                        <h4 className="text-lg font-bold classic-title mb-4 uppercase text-red-700">Camera Access Issue</h4>
                         <div className="classic-subtitle mb-6 italic text-red-700">{cameraError}</div>
+
+                        {cameraRetryCount < 1 ? (
+                          <div className="mb-6">
+                            <div className="classic-loading mx-auto mb-3"></div>
+                            <p className="classic-subtitle italic text-sm">Retrying camera access...</p>
+                          </div>
+                        ) : (
+                          <div className="mb-6">
+                            <p className="classic-subtitle italic text-sm mb-2">Automatically switching to alternative options...</p>
+                            <div className="w-32 h-2 bg-gray-300 mx-auto">
+                              <div className="w-full h-full bg-red-600 animate-pulse"></div>
+                            </div>
+                          </div>
+                        )}
+
                         <button
                           onClick={stopCamera}
                           className="btn-classic-secondary"
                         >
-                          CLOSE
+                          CLOSE NOW
                         </button>
                       </div>
                     ) : (
@@ -541,7 +887,7 @@ export default function ExamPage() {
                         <div className="relative mb-6">
                           <video
                             ref={videoRef}
-                            className="w-full h-64 classic-video-player object-cover"
+                            className="w-full h-64 classic-video-player classic-video-player-mirrored object-cover"
                             autoPlay
                             playsInline
                             muted
@@ -574,17 +920,25 @@ export default function ExamPage() {
                         <div className="flex space-x-4">
                           <button
                             onClick={takePicture}
-                            disabled={isStartingCamera}
-                            className={`flex-1 ${isStartingCamera
-                                ? 'btn-classic-secondary opacity-50 cursor-not-allowed'
-                                : 'btn-classic-primary'
+                            disabled={isStartingCamera || evaluatingImage}
+                            className={`flex-1 ${isStartingCamera || evaluatingImage
+                              ? 'btn-classic-secondary opacity-50 cursor-not-allowed'
+                              : 'btn-classic-primary'
                               }`}
                           >
-                            📸 CAPTURE
+                            {evaluatingImage ? (
+                              <div className="flex items-center justify-center">
+                                <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin mr-2"></div>
+                                ANALYZING...
+                              </div>
+                            ) : (
+                              '📸 CAPTURE'
+                            )}
                           </button>
                           <button
                             onClick={stopCamera}
-                            className="flex-1 btn-classic-secondary"
+                            disabled={evaluatingImage}
+                            className={`flex-1 ${evaluatingImage ? 'opacity-50 cursor-not-allowed' : ''} btn-classic-secondary`}
                           >
                             CANCEL
                           </button>
@@ -598,7 +952,7 @@ export default function ExamPage() {
               {/* Answer confirmation popup */}
               {showAnswerConfirm && answerConfirmImage && (
                 <div className="fixed inset-0 bg-black bg-opacity-75 flex items-end justify-center z-[60]">
-                  <div className="mb-10 old-school-card bg-white px-8 py-6 flex items-center space-x-6">
+                  <div className="mb-10 old-school-card modal-card bg-white px-8 py-6 flex items-center space-x-6">
                     <div className="w-14 h-14 border-4 border-gray-800 overflow-hidden">
                       <img src={answerConfirmImage} alt="Your answer" className="w-full h-full object-cover" />
                     </div>
@@ -609,39 +963,183 @@ export default function ExamPage() {
                   </div>
                 </div>
               )}
+
+              {/* Immediate AI Feedback Modal */}
+              {showImmediateFeedback && immediateAnalysis && (
+                <div
+                  className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[70]"
+                  onClick={(e) => {
+                    // Only close if clicking directly on backdrop, not bubbled events
+                    if (e.target === e.currentTarget) {
+                      // Don't close the modal - user should use buttons
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }
+                  }}
+                  onMouseMove={(e) => {
+                    // Prevent any mouse movement from affecting the modal
+                    e.stopPropagation();
+                  }}
+                  style={{
+                    pointerEvents: 'auto',
+                    userSelect: 'none',
+                    cursor: 'default'
+                  }}
+                >
+                  <div
+                    className="old-school-card modal-card bg-white p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+                    onClick={(e) => {
+                      // Prevent clicks inside modal from bubbling up
+                      e.stopPropagation();
+                    }}
+                    style={{
+                      pointerEvents: 'auto',
+                      position: 'relative',
+                      zIndex: 1
+                    }}
+                  >
+                    {evaluatingImage ? (
+                      <div className="text-center py-12">
+                        <div className="classic-loading mx-auto mb-8"></div>
+                        <h3 className="text-2xl font-bold classic-title mb-6 uppercase">Analyzing Your Sign...</h3>
+                        <p className="classic-subtitle italic text-lg">AI is evaluating your gesture</p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="text-center mb-8">
+                          <div className={`w-20 h-20 mx-auto mb-6 border-4 border-gray-800 rounded-full flex items-center justify-center ${immediateAnalysis.isCorrect ? 'bg-green-600' : 'bg-red-600'
+                            }`}>
+                            {immediateAnalysis.isCorrect ? (
+                              <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            ) : (
+                              <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </div>
+                          <h3 className={`text-2xl font-bold classic-title mb-3 uppercase ${immediateAnalysis.isCorrect ? 'text-green-700' : 'text-red-700'
+                            }`}>
+                            {immediateAnalysis.isCorrect ? 'Well Done!' : 'Keep Practicing!'}
+                          </h3>
+                          <p className="classic-subtitle text-base italic">
+                            AI Confidence: {immediateAnalysis.confidence}%
+                          </p>
+                        </div>
+
+                        {capturedImage && (
+                          <div className="text-center mb-8">
+                            <p className="text-sm classic-subtitle mb-3 italic uppercase">Your Captured Sign:</p>
+                            <img src={capturedImage} alt="Your sign" className="retro-image w-40 h-40 object-cover mx-auto border-4 border-gray-800" />
+                          </div>
+                        )}
+
+                        <div className="mb-8 border-l-4 border-gray-800 pl-6">
+                          <h4 className="font-bold classic-title text-base uppercase mb-3">AI Analysis:</h4>
+                          <p className="classic-subtitle text-base italic mb-6">{immediateAnalysis.analysis}</p>
+
+                          <h4 className="font-bold classic-title text-base uppercase mb-3">Feedback & Tips:</h4>
+                          <p className="classic-subtitle text-base italic whitespace-pre-line leading-relaxed">{immediateAnalysis.feedback}</p>
+                        </div>
+
+                        {/* Auto-advance countdown */}
+                        {autoAdvanceCountdown !== null && autoAdvanceCountdown > 0 && (
+                          <div className="text-center mb-6 p-4 bg-gray-100 border-2 border-gray-400 rounded">
+                            <p className="classic-subtitle text-base italic">
+                              ⏱️ Auto-advancing in <span className="font-bold text-orange-600 text-lg">{autoAdvanceCountdown}</span> seconds...
+                            </p>
+                            <div className="w-full bg-gray-300 rounded-full h-3 mt-3">
+                              <div
+                                className="bg-orange-500 h-3 rounded-full transition-all duration-1000"
+                                style={{ width: `${((4 - autoAdvanceCountdown) / 4) * 100}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}              {/* Camera Fallback Modal */}
+              {showCameraFallback && (
+                <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[70]">
+                  <div className="old-school-card bg-white p-8 max-w-lg w-full mx-4">
+                    <div className="text-center mb-6">
+                      <div className="w-16 h-16 mx-auto mb-4 border-4 border-orange-600 rounded-full flex items-center justify-center bg-orange-100">
+                        <svg className="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.5 6.5l.01 0" />
+                        </svg>
+                      </div>
+                      <h3 className="text-xl font-bold classic-title mb-4 uppercase">Camera Unavailable</h3>
+                      <p className="classic-subtitle italic mb-6">
+                        We couldn't access your camera. Choose an alternative method to continue:
+                      </p>
+                    </div>
+
+                    <div className="space-y-4">
+                      {/* File Upload Option */}
+                      <div className="border-2 border-gray-800 p-4">
+                        <h4 className="font-bold classic-title text-sm uppercase mb-3">📁 Upload Image File</h4>
+                        <p className="classic-subtitle text-sm italic mb-4">
+                          Take a photo with another device or app, then upload it here:
+                        </p>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileUpload}
+                          className="w-full mb-2 text-sm classic-subtitle"
+                          id="image-upload"
+                        />
+                        <label
+                          htmlFor="image-upload"
+                          className="btn-classic-primary cursor-pointer inline-block text-center w-full"
+                        >
+                          CHOOSE IMAGE FILE
+                        </label>
+                      </div>
+
+                      {/* Skip Option */}
+                      <div className="border-2 border-gray-400 p-4 bg-gray-50">
+                        <h4 className="font-bold classic-title text-sm uppercase mb-3">⏭️ Skip This Question</h4>
+                        <p className="classic-subtitle text-sm italic mb-4">
+                          Skip this question and continue with the exam. You'll receive educational guidance instead.
+                        </p>
+                        <button
+                          onClick={skipQuestion}
+                          className="btn-classic-secondary w-full"
+                        >
+                          SKIP QUESTION
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 text-center">
+                      <button
+                        onClick={() => setShowCameraFallback(false)}
+                        className="btn-classic-secondary"
+                      >
+                        CANCEL
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Navigation Buttons */}
-            <div className="flex justify-between items-center">
+            <div className="flex justify-start items-center">
               <Link
                 href="/test-sets"
-                className="text-gray-600 hover:text-gray-800 font-medium flex items-center"
+                className="btn-classic-secondary flex items-center"
               >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
-                Back to Sets
+                BACK TO SETS
               </Link>
-
-              <button
-                onClick={submitAnswer}
-                disabled={!selectedAnswer || submitting}
-                className={`font-bold py-3 px-6 rounded-xl transition-all duration-300 ${selectedAnswer && !submitting
-                    ? 'bg-orange-500 hover:bg-orange-600 text-white transform hover:scale-105'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
-              >
-                {submitting ? (
-                  <div className="flex items-center">
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                    Saving...
-                  </div>
-                ) : currentQuestionIndex === questions.length - 1 ? (
-                  'Complete Exam'
-                ) : (
-                  'Next Question'
-                )}
-              </button>
             </div>
           </div>
         </div>

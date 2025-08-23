@@ -75,8 +75,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    console.log(`Attempting to generate questions for set ${setId} using Groq AI...`);
+
     // Always try to generate questions using Groq AI first
     const questions = await generateQuestionsWithGroq(setId);
+
+    console.log(`Successfully generated ${questions.length} questions with Groq AI`);
 
     res.status(200).json({
       questions: questions,
@@ -170,11 +174,16 @@ async function generateEnhancedFallbackQuestions(setId: number): Promise<Questio
 }
 
 async function generateQuestionsWithGroq(setId: number): Promise<Question[]> {
+  console.log(`Starting Groq question generation for set ${setId}`);
+
   const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
   if (!GROQ_API_KEY) {
+    console.error('Groq API key not configured');
     throw new Error('Groq API key not configured');
   }
+
+  console.log('Groq API key found, initializing client...');
 
   const groq = new Groq({
     apiKey: GROQ_API_KEY,
@@ -211,19 +220,43 @@ async function generateQuestionsWithGroq(setId: number): Promise<Question[]> {
 
   const difficulty = difficultyLevels[setId as keyof typeof difficultyLevels];
 
-  const prompt = `You are an expert Indian Sign Language (ISL) instructor. Generate exactly 10 questions for ${difficulty.level} level students.
+  // Add randomization elements to ensure variety
+  const currentTime = new Date().getTime();
+  const randomSeed = Math.floor(Math.random() * 1000);
+  const sessionId = `${currentTime}_${randomSeed}`;
 
+  // Create random letter suggestions for variety
+  const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  const shuffledLetters = [...allLetters].sort(() => Math.random() - 0.5);
+  const suggestedLetters = shuffledLetters.slice(0, 12); // Get 12 random letters
+
+  // Add variation prompts
+  const variationPrompts = [
+    "Focus on creating questions with letters that are commonly confused",
+    "Include a mix of letters with different hand orientations",
+    "Vary between letters with simple and complex handshapes",
+    "Create questions testing letters with similar finger positions",
+    "Mix letters that require different thumb positions"
+  ];
+  const selectedVariation = variationPrompts[Math.floor(Math.random() * variationPrompts.length)];
+
+  const prompt = `You are an expert Indian Sign Language (ISL) instructor. Generate exactly 10 UNIQUE questions for ${difficulty.level} level students.
+
+SESSION: ${sessionId}
 CONTEXT: ${difficulty.context}
 FOCUS AREAS: ${difficulty.focus}
+VARIATION INSTRUCTION: ${selectedVariation}
+SUGGESTED LETTERS (use some of these for variety): ${suggestedLetters.join(', ')}
 
 STRICT REQUIREMENTS:
 1) Generate EXACTLY 10 questions
 2) EVERY question MUST be an IMAGE-CAPTURE task with options strictly as ["Capture Image"]
 3) Each question MUST ask the learner to provide a hand image that expresses a specific ISL alphabet letter (A-Z)
-4) Vary the letters across questions and avoid repetition when possible
+4) ENSURE VARIETY - Use different letters across questions, avoid repetition when possible
 5) The "correctAnswer" MUST be the target alphabet letter (single uppercase character like "A")
 6) The "explanation" MUST describe the correct handshape/orientation for that letter in clear, concise terms
 7) Keep the wording simple: "Give me the hand image that expresses the alphabet '<LETTER>'"
+8) RANDOMIZE the order of letters - don't use alphabetical sequence
 
 OUTPUT FORMAT (valid JSON only):
 {
@@ -238,14 +271,16 @@ OUTPUT FORMAT (valid JSON only):
   ]
 }
 
-Generate the 10 questions now for Set ${setId} (${difficulty.level} level).`;
+Generate the 10 VARIED questions now for Set ${setId} (${difficulty.level} level).`;
 
   try {
+    console.log('Sending request to Groq API...');
+
     const chatCompletion = await groq.chat.completions.create({
       messages: [
         {
           role: "system",
-          content: "You are an expert Indian Sign Language (ISL) instructor. You must respond with valid JSON only, containing exactly 10 questions for image capture tasks."
+          content: "You are an expert Indian Sign Language (ISL) instructor. You must respond with valid JSON only, containing exactly 10 questions for image capture tasks. Ensure variety in letter selection for each session."
         },
         {
           role: "user",
@@ -253,15 +288,22 @@ Generate the 10 questions now for Set ${setId} (${difficulty.level} level).`;
         },
       ],
       model: "llama-3.3-70b-versatile",
-      temperature: 0.3, // Lower temperature for more consistent output
+      temperature: 0.8, // Higher temperature for more variation
       max_tokens: 2048,
+      top_p: 0.9, // Add nucleus sampling for more diversity
     });
+
+    console.log('Received response from Groq API');
 
     const response = chatCompletion.choices[0]?.message?.content;
 
     if (!response) {
+      console.error('No response content from Groq AI');
       throw new Error('No response from Groq AI');
     }
+
+    console.log('Response length:', response.length);
+    console.log('Response preview:', response.substring(0, 200) + '...');
 
     // Clean and extract JSON from response
     let cleanedResponse = response.trim();
