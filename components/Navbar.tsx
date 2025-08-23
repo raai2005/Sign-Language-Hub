@@ -8,7 +8,7 @@ const Navbar = () => {
     { href: '/', label: 'Home' },
     { href: '/learn', label: 'Learn A-Z' },
     { href: '/intermediate', label: 'Intermediate' },
-    { href: '/exam', label: 'Exam' },
+    { href: '/test-sets', label: 'Exam' },
     { href: '/about', label: 'About' },
   ];
 
@@ -36,9 +36,8 @@ const Navbar = () => {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`classic-nav-item ${
-                    isActive(item.href) ? 'active' : ''
-                  }`}
+                  className={`classic-nav-item ${isActive(item.href) ? 'active' : ''
+                    }`}
                 >
                   {item.label}
                 </Link>
@@ -63,9 +62,8 @@ const Navbar = () => {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`block classic-nav-item ${
-                  isActive(item.href) ? 'active' : ''
-                }`}
+                className={`block classic-nav-item ${isActive(item.href) ? 'active' : ''
+                  }`}
               >
                 {item.label}
               </Link>

@@ -36,7 +36,7 @@ interface ExamResult {
 export default function ExamPage() {
   const router = useRouter();
   const { setId } = router.query;
-  
+
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<UserAnswer[]>([]);
@@ -188,17 +188,17 @@ export default function ExamPage() {
       if (imageData) {
         // Compress the image
         const compressedImage = await compressImage(imageData, 800, 0.7);
-        
+
         // Upload to Cloudinary
         const imageUrl = await cameraCapture.current.uploadImage(
-          compressedImage, 
-          currentQuestion.id, 
+          compressedImage,
+          currentQuestion.id,
           parseInt(setId as string)
         );
-        
+
         setCapturedImage(imageUrl);
         setSelectedAnswer(imageUrl);
-  stopCamera();
+        stopCamera();
 
         // Show quick confirmation popup, then auto-advance
         setAnswerConfirmImage(imageUrl);
@@ -229,7 +229,7 @@ export default function ExamPage() {
 
     setSubmitting(true);
     const currentQuestion = questions[currentQuestionIndex];
-    
+
     // Create user answer object
     const userAnswer: UserAnswer = {
       questionId: currentQuestion.id,
@@ -295,10 +295,10 @@ export default function ExamPage() {
     } catch (error) {
       console.error('Error evaluating exam:', error);
       // Fallback evaluation
-      const score = answers.filter(answer => 
+      const score = answers.filter(answer =>
         questions.find(q => q.id === answer.questionId)?.correctAnswer === answer.selectedAnswer
       ).length;
-      
+
       setExamResult({
         score,
         totalQuestions: questions.length,
@@ -316,11 +316,11 @@ export default function ExamPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Generating AI Questions...</h2>
-          <p className="text-gray-600">Please wait while Groq AI creates your personalized test questions.</p>
+      <div className="min-h-screen classic-bg flex items-center justify-center">
+        <div className="text-center old-school-card bg-white p-12">
+          <div className="classic-loading mx-auto mb-6"></div>
+          <h2 className="text-2xl font-bold classic-title mb-4 uppercase">Generating Examination Questions...</h2>
+          <p className="classic-subtitle italic">Please wait while our AI system creates your personalized test questions.</p>
         </div>
       </div>
     );
@@ -332,70 +332,71 @@ export default function ExamPage() {
         <Head>
           <title>Exam Results - ISL Learning Platform</title>
         </Head>
-        <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
+        <div className="min-h-screen classic-bg">
           <Navbar />
-          
+
           <div className="pt-24 pb-16">
-            <div className="container mx-auto px-4 max-w-4xl">
+            <div className="max-w-6xl mx-auto px-4">
               {/* Results Header */}
               <div className="text-center mb-12">
-                <div className={`w-24 h-24 mx-auto mb-6 rounded-full flex items-center justify-center ${
-                  examResult.score >= 8 ? 'bg-green-500' : examResult.score >= 6 ? 'bg-yellow-500' : 'bg-red-500'
-                }`}>
+                <div className={`w-24 h-24 mx-auto mb-6 border-4 border-gray-800 flex items-center justify-center old-school-card ${examResult.score >= 8 ? 'bg-green-600' : examResult.score >= 6 ? 'bg-yellow-600' : 'bg-red-600'
+                  }`}>
                   <span className="text-3xl text-white font-bold">
                     {Math.round((examResult.score / examResult.totalQuestions) * 100)}%
                   </span>
                 </div>
-                <h1 className="text-4xl font-bold text-gray-800 mb-4">
-                  {testSetTitles[setId as string]} - Complete!
+                <h1 className="text-4xl font-bold classic-title mb-6 uppercase">
+                  {testSetTitles[setId as string]} - Examination Complete!
                 </h1>
-                <p className="text-xl text-gray-600">
-                  You scored {examResult.score} out of {examResult.totalQuestions} questions correctly.
-                </p>
+                <div className="w-32 h-2 bg-gray-800 mx-auto mb-8"></div>
+                <div className="max-w-4xl mx-auto border-l-4 border-gray-800 pl-8">
+                  <p className="text-xl classic-subtitle italic">
+                    Final Score: {examResult.score} out of {examResult.totalQuestions} questions answered correctly.
+                  </p>
+                </div>
               </div>
 
               {/* Detailed Feedback */}
-              <div className="space-y-6">
+              <div className="space-y-8">
                 {examResult.feedback.map((feedback, index) => {
                   const question = questions.find(q => q.id === feedback.questionId);
                   const userAnswer = examResult.answers.find(a => a.questionId === feedback.questionId);
-                  
+
                   return (
-                    <div key={feedback.questionId} className="bg-white rounded-2xl p-6 shadow-soft">
+                    <div key={feedback.questionId} className="old-school-card bg-white p-6">
                       <div className="flex items-start space-x-4">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                          feedback.isCorrect ? 'bg-green-500' : 'bg-red-500'
-                        }`}>
+                        <div className={`w-8 h-8 border-2 border-gray-800 flex items-center justify-center flex-shrink-0 ${feedback.isCorrect ? 'bg-green-600' : 'bg-red-600'
+                          }`}>
                           {feedback.isCorrect ? (
-                            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20" strokeWidth={3}>
                               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                             </svg>
                           ) : (
-                            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20" strokeWidth={3}>
                               <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                             </svg>
                           )}
                         </div>
                         <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                          <h3 className="text-lg font-bold classic-title mb-4 uppercase">
                             Question {index + 1}: {question?.question}
                           </h3>
-                          
+
                           {userAnswer?.imageUrl && (
                             <div className="mb-4">
-                              <p className="text-sm text-gray-600 mb-2">Your Answer (Image):</p>
-                              <img src={userAnswer.imageUrl} alt="Your answer" className="w-32 h-32 object-cover rounded-lg" />
+                              <p className="text-sm classic-subtitle mb-2 italic">Your Submitted Image:</p>
+                              <img src={userAnswer.imageUrl} alt="Your answer" className="retro-image w-32 h-32 object-cover" />
                             </div>
                           )}
-                          
+
                           {!feedback.isCorrect && (
-                            <div className="mb-4">
-                              <p className="text-sm text-red-600 mb-1">Your Answer: {userAnswer?.selectedAnswer}</p>
-                              <p className="text-sm text-green-600 mb-1">Correct Answer: {feedback.correctAnswer}</p>
+                            <div className="mb-4 border-l-4 border-red-600 pl-4">
+                              <p className="text-sm text-red-700 mb-1 font-bold">Your Answer: {userAnswer?.selectedAnswer}</p>
+                              <p className="text-sm text-green-700 mb-1 font-bold">Correct Answer: {feedback.correctAnswer}</p>
                             </div>
                           )}
-                          
-                          <p className="text-gray-600 text-sm">{feedback.explanation}</p>
+
+                          <p className="classic-subtitle text-sm italic border-l-4 border-gray-800 pl-4">{feedback.explanation}</p>
                         </div>
                       </div>
                     </div>
@@ -404,31 +405,31 @@ export default function ExamPage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="text-center mt-12 space-y-4">
-                <div className="space-x-4">
+              <div className="text-center mt-12 space-y-6">
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <button
                     onClick={() => window.location.reload()}
-                    className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-xl transition-colors"
+                    className="btn-classic-primary"
                   >
-                    Try Again
+                    RETAKE EXAMINATION
                   </button>
                   <Link
                     href="/test-sets"
-                    className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-xl transition-colors inline-block"
+                    className="btn-classic-secondary"
                   >
-                    Choose Another Set
+                    CHOOSE ANOTHER SET
                   </Link>
                 </div>
                 <Link
                   href="/learn"
-                  className="text-orange-600 hover:text-orange-700 font-medium inline-block"
+                  className="btn-classic-secondary inline-block"
                 >
-                  Back to Learning
+                  RETURN TO STUDIES
                 </Link>
               </div>
             </div>
           </div>
-          
+
           <Footer />
         </div>
       </>
@@ -443,23 +444,23 @@ export default function ExamPage() {
         <title>{testSetTitles[setId as string]} - ISL Learning Platform</title>
       </Head>
 
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
+      <div className="min-h-screen classic-bg">
         <Navbar />
-        
+
         <div className="pt-24 pb-16">
-          <div className="container mx-auto px-4 max-w-4xl">
+          <div className="max-w-6xl mx-auto px-4">
             {/* Progress Header */}
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-gray-800 mb-4">
+            <div className="text-center mb-8 classic-bg-paper p-8 border-4 border-gray-800">
+              <h1 className="text-4xl font-bold classic-title mb-6 uppercase">
                 {testSetTitles[setId as string]}
               </h1>
-              <div className="flex items-center justify-center space-x-4 mb-6">
-                <span className="text-lg font-medium text-gray-600">
+              <div className="flex items-center justify-center space-x-6 mb-6">
+                <span className="text-lg font-bold classic-title uppercase">
                   Question {currentQuestionIndex + 1} of {questions.length}
                 </span>
-                <div className="w-64 bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-orange-500 h-2 rounded-full transition-all duration-500"
+                <div className="w-64 bg-gray-300 border-2 border-gray-800 h-4">
+                  <div
+                    className="bg-gray-800 h-full transition-all duration-500"
                     style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}
                   ></div>
                 </div>
@@ -467,18 +468,18 @@ export default function ExamPage() {
             </div>
 
             {/* Question Card */}
-            <div className="bg-white rounded-2xl shadow-strong p-8 mb-8">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
+            <div className="old-school-card bg-white p-8 mb-8">
+              <h2 className="text-2xl font-bold classic-title mb-8 text-center uppercase">
                 {currentQuestion?.question}
               </h2>
 
               {/* Question Image (if any) */}
               {currentQuestion?.question.includes('hand sign') && (
-                <div className="text-center mb-6">
-                  <img 
-                    src="/alphabets-images/Sign_language_A.svg.png" 
+                <div className="text-center mb-8">
+                  <img
+                    src="/alphabets-images/Sign_language_A.svg.png"
                     alt="Sign language gesture"
-                    className="w-48 h-48 object-contain mx-auto rounded-xl shadow-soft"
+                    className="retro-image w-48 h-48 object-contain mx-auto"
                   />
                 </div>
               )}
@@ -490,22 +491,21 @@ export default function ExamPage() {
                     <button
                       key={index}
                       onClick={() => option === 'Capture Image' ? captureImage() : handleAnswerSelect(option)}
-                      className={`w-full p-4 text-left border-2 rounded-xl transition-all duration-300 ${
-                        selectedAnswer === option
-                          ? 'border-orange-500 bg-orange-50 text-orange-700'
-                          : 'border-gray-200 hover:border-orange-300 hover:bg-orange-25'
-                      }`}
+                      className={`w-full p-4 text-left border-3 border-gray-800 transition-all duration-300 classic-focus ${selectedAnswer === option
+                          ? 'bg-gray-800 text-white font-bold'
+                          : 'bg-white hover:bg-gray-100 classic-subtitle'
+                        }`}
                     >
                       {option === 'Capture Image' ? (
                         <div className="flex items-center justify-center">
-                          <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                           </svg>
-                          Capture Your Sign
+                          CAPTURE YOUR SIGN
                         </div>
                       ) : (
-                        option
+                        option.toUpperCase()
                       )}
                     </button>
                   )
@@ -514,39 +514,39 @@ export default function ExamPage() {
 
               {/* Captured Image Preview */}
               {capturedImage && (
-                <div className="mt-6 text-center">
-                  <p className="text-sm text-gray-600 mb-2">Your captured sign:</p>
-                  <img src={capturedImage} alt="Captured sign" className="w-32 h-32 object-cover rounded-lg mx-auto" />
+                <div className="mt-8 text-center classic-bg-paper p-6 border-4 border-gray-800">
+                  <p className="text-sm classic-subtitle mb-4 italic uppercase">Your Captured Sign:</p>
+                  <img src={capturedImage} alt="Captured sign" className="retro-image w-32 h-32 object-cover mx-auto" />
                 </div>
               )}
 
               {/* Camera Modal */}
               {showCamera && (
                 <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-                  <div className="bg-white rounded-2xl p-6 max-w-2xl w-full mx-4">
-                    <h3 className="text-xl font-bold text-center mb-4">Capture Your Sign</h3>
-                    
+                  <div className="old-school-card bg-white p-8 max-w-2xl w-full mx-4">
+                    <h3 className="text-xl font-bold classic-title text-center mb-6 uppercase">Capture Your Sign</h3>
+
                     {cameraError ? (
                       <div className="text-center py-8">
-                        <div className="text-red-500 mb-4">{cameraError}</div>
+                        <div className="classic-subtitle mb-6 italic text-red-700">{cameraError}</div>
                         <button
                           onClick={stopCamera}
-                          className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-xl transition-colors"
+                          className="btn-classic-secondary"
                         >
-                          Close
+                          CLOSE
                         </button>
                       </div>
                     ) : (
                       <>
-                        <div className="relative mb-4">
-                          <video 
+                        <div className="relative mb-6">
+                          <video
                             ref={videoRef}
-                            className="w-full h-64 bg-gray-200 rounded-xl object-cover"
-                            autoPlay 
-                            playsInline 
+                            className="w-full h-64 classic-video-player object-cover"
+                            autoPlay
+                            playsInline
                             muted
                           />
-                          <canvas 
+                          <canvas
                             ref={canvasRef}
                             className="hidden"
                           />
@@ -566,28 +566,27 @@ export default function ExamPage() {
                             </div>
                           )}
                         </div>
-                        
-                        <div className="text-center text-sm text-gray-600 mb-4">
-                          Position your hand in the frame and make the sign for the letter. {countdown !== null ? `Auto capture in ${countdown}s...` : ''}
+
+                        <div className="text-center classic-subtitle mb-6 italic">
+                          Position your hand clearly in the frame and form the correct sign. {countdown !== null ? `Auto capture in ${countdown}s...` : ''}
                         </div>
-                        
+
                         <div className="flex space-x-4">
                           <button
                             onClick={takePicture}
                             disabled={isStartingCamera}
-                            className={`flex-1 font-bold py-3 px-6 rounded-xl transition-colors ${
-                              isStartingCamera
-                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                : 'bg-orange-500 hover:bg-orange-600 text-white'
-                            }`}
+                            className={`flex-1 ${isStartingCamera
+                                ? 'btn-classic-secondary opacity-50 cursor-not-allowed'
+                                : 'btn-classic-primary'
+                              }`}
                           >
-                            📸 Capture
+                            📸 CAPTURE
                           </button>
                           <button
                             onClick={stopCamera}
-                            className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-xl transition-colors"
+                            className="flex-1 btn-classic-secondary"
                           >
-                            Cancel
+                            CANCEL
                           </button>
                         </div>
                       </>
@@ -598,14 +597,14 @@ export default function ExamPage() {
 
               {/* Answer confirmation popup */}
               {showAnswerConfirm && answerConfirmImage && (
-                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-end justify-center z-[60]">
-                  <div className="mb-10 bg-white shadow-strong rounded-2xl px-6 py-4 flex items-center space-x-4">
-                    <div className="w-14 h-14 rounded-lg overflow-hidden border">
+                <div className="fixed inset-0 bg-black bg-opacity-75 flex items-end justify-center z-[60]">
+                  <div className="mb-10 old-school-card bg-white px-8 py-6 flex items-center space-x-6">
+                    <div className="w-14 h-14 border-4 border-gray-800 overflow-hidden">
                       <img src={answerConfirmImage} alt="Your answer" className="w-full h-full object-cover" />
                     </div>
                     <div>
-                      <p className="text-gray-800 font-semibold">Your answer</p>
-                      <p className="text-gray-600 text-sm">Submitting and moving to the next question…</p>
+                      <p className="classic-title font-bold uppercase">Your Answer</p>
+                      <p className="classic-subtitle text-sm italic">Submitting and proceeding to the next question...</p>
                     </div>
                   </div>
                 </div>
@@ -627,11 +626,10 @@ export default function ExamPage() {
               <button
                 onClick={submitAnswer}
                 disabled={!selectedAnswer || submitting}
-                className={`font-bold py-3 px-6 rounded-xl transition-all duration-300 ${
-                  selectedAnswer && !submitting
+                className={`font-bold py-3 px-6 rounded-xl transition-all duration-300 ${selectedAnswer && !submitting
                     ? 'bg-orange-500 hover:bg-orange-600 text-white transform hover:scale-105'
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
+                  }`}
               >
                 {submitting ? (
                   <div className="flex items-center">

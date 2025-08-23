@@ -189,7 +189,7 @@ export default function Learn() {
 
   useEffect(() => {
     let filtered = letters;
-    
+
     if (searchTerm) {
       filtered = letters.filter(letter =>
         letter.letter.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -254,7 +254,7 @@ export default function Learn() {
 
       <div className="min-h-screen classic-bg">
         <Navbar />
-        
+
         {/* Header */}
         <section className="classic-bg-paper relative border-b-4 border-gray-800">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
@@ -270,8 +270,8 @@ export default function Learn() {
               <div className="w-32 h-2 bg-gray-800 mx-auto mb-8"></div>
               <div className="max-w-4xl mx-auto border-l-4 border-gray-800 pl-8">
                 <p className="text-xl classic-subtitle leading-relaxed italic">
-                  "A comprehensive study of the twenty-six letters comprising the Indian Sign Language alphabet. 
-                  Each character presented with methodical instruction and proper hand positioning techniques 
+                  "A comprehensive study of the twenty-six letters comprising the Indian Sign Language alphabet.
+                  Each character presented with methodical instruction and proper hand positioning techniques
                   essential for accurate communication."
                 </p>
               </div>
@@ -296,7 +296,7 @@ export default function Learn() {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="block w-full pl-14 pr-4 py-4 border-4 border-gray-800 bg-white placeholder-gray-600 classic-focus text-xl font-bold uppercase tracking-wide"
-                    style={{fontFamily: 'Georgia, serif'}}
+                    style={{ fontFamily: 'Georgia, serif' }}
                   />
                 </div>
               </div>
@@ -308,11 +308,10 @@ export default function Learn() {
                 <button
                   key={category.id}
                   onClick={() => setSelectedCategory(category.id)}
-                  className={`${
-                    selectedCategory === category.id
+                  className={`${selectedCategory === category.id
                       ? 'btn-classic-primary'
                       : 'btn-classic-secondary'
-                  }`}
+                    }`}
                 >
                   {category.name} ({category.count})
                 </button>
@@ -345,7 +344,7 @@ export default function Learn() {
                 >
                   <div className="mb-6">
                     <div className="w-20 h-20 bg-gray-800 border-4 border-gray-600 flex items-center justify-center mx-auto mb-4">
-                      <span className="text-3xl font-bold text-white" style={{fontFamily: 'Georgia, serif'}}>{letter.letter}</span>
+                      <span className="text-3xl font-bold text-white" style={{ fontFamily: 'Georgia, serif' }}>{letter.letter}</span>
                     </div>
                     <h3 className="text-2xl font-bold classic-title mb-3 uppercase">Letter {letter.letter}</h3>
                     <div className="border-l-4 border-gray-800 pl-4 mb-6">
@@ -403,8 +402,8 @@ export default function Learn() {
               <div className="w-32 h-2 bg-gray-800 mx-auto mb-8"></div>
               <div className="border-l-4 border-gray-800 pl-8 mb-10">
                 <p className="text-xl classic-subtitle leading-relaxed italic">
-                  "Assess your knowledge through our comprehensive examination system featuring 
-                  five distinct test sets, each containing ten carefully crafted questions powered 
+                  "Assess your knowledge through our comprehensive examination system featuring
+                  five distinct test sets, each containing ten carefully crafted questions powered
                   by advanced artificial intelligence technology."
                 </p>
               </div>
@@ -423,11 +422,11 @@ export default function Learn() {
         {/* Detailed Modal */}
         {showModal && selectedLetter && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="classic-bg old-school-card max-w-4xl w-full max-h-[90vh] overflow-y-auto">
               <div className="p-6">
                 <div className="flex justify-between items-start mb-6">
                   <div className="flex items-center space-x-4">
-                    <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl flex items-center justify-center shadow-strong">
+                    <div className="w-16 h-16 classic-primary-bg border-4 border-gray-800 flex items-center justify-center">
                       <span className="text-3xl font-bold text-white">{selectedLetter.letter}</span>
                     </div>
                     <div>
@@ -446,12 +445,12 @@ export default function Learn() {
                 </div>
 
                 {/* Main Hand Image */}
-                <div className="mb-8 bg-white rounded-xl p-6 shadow-soft">
+                <div className="mb-8 classic-bg old-school-card p-6">
                   <div className="flex justify-center">
-                    <img 
-                      src={selectedLetter.handImage} 
+                    <img
+                      src={selectedLetter.handImage}
                       alt={`Letter ${selectedLetter.letter} hand position`}
-                      className="w-64 h-64 object-contain rounded-xl shadow-strong sign-language-image"
+                      className="w-64 h-64 object-contain border-4 border-gray-800 sign-language-image"
                       onLoad={(e) => {
                         // Image loaded successfully
                         e.currentTarget.style.opacity = '1';
@@ -460,7 +459,7 @@ export default function Learn() {
                         // Fallback to a simple colored div if image fails to load
                         e.currentTarget.style.display = 'none';
                         const fallbackDiv = document.createElement('div');
-                        fallbackDiv.className = 'w-64 h-64 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl shadow-strong flex items-center justify-center';
+                        fallbackDiv.className = 'w-64 h-64 classic-primary-bg border-4 border-gray-800 flex items-center justify-center';
                         fallbackDiv.innerHTML = `
                           <div class="text-center text-white">
                             <div class="text-6xl font-bold mb-2">${selectedLetter.letter}</div>

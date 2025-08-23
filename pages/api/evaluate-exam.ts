@@ -43,10 +43,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     // Process each answer and evaluate with Groq AI
     const feedback = await evaluateAnswersWithGroq(questions, answers);
-    
+
     // Calculate score
     const correctAnswers = feedback.filter(f => f.isCorrect).length;
-    
+
     const result: ExamResult = {
       score: correctAnswers,
       totalQuestions: questions.length,
@@ -67,7 +67,7 @@ async function evaluateAnswersWithGroq(questions: Question[], answers: UserAnswe
 
   for (const question of questions) {
     const userAnswer = answers.find(a => a.questionId === question.id);
-    
+
     if (!userAnswer) {
       feedback.push({
         questionId: question.id,
@@ -84,12 +84,43 @@ async function evaluateAnswersWithGroq(questions: Question[], answers: UserAnswe
 
     // For text-based answers
     if (!userAnswer.imageUrl) {
-      isCorrect = userAnswer.selectedAnswer.toLowerCase().trim() === 
-                 question.correctAnswer.toLowerCase().trim();
+      isCorrect = userAnswer.selectedAnswer.toLowerCase().trim() ===
+        question.correctAnswer.toLowerCase().trim();
     } else {
-      // For image-based answers, use Groq AI to analyze
-      groqAnalysis = await analyzeImageWithGroq(userAnswer.imageUrl, question);
-      isCorrect = groqAnalysis.includes('correct') || groqAnalysis.includes('accurate');
+      // For image-based answers, use our new image analysis API
+      try {
+        const analysisResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/analyze-image`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            imageUrl: userAnswer.imageUrl,
+            expectedLetter: question.correctAnswer,
+            questionText: question.question
+          }),
+        });
+
+        if (analysisResponse.ok) {
+          const analysisResult = await analysisResponse.json();
+
+          if (analysisResult.success && analysisResult.result) {
+            isCorrect = analysisResult.result.isCorrect;
+            groqAnalysis = `**Image Analysis Result:**\n\n**Detected:** ${analysisResult.result.detectedLetter}\n**Confidence:** ${analysisResult.result.confidence}%\n\n**Analysis:** ${analysisResult.result.analysis}\n\n**Feedback:** ${analysisResult.result.feedback}`;
+          } else {
+            // Use fallback analysis
+            isCorrect = false;
+            groqAnalysis = analysisResult.result?.feedback || 'Unable to analyze image. Please ensure the image is clear and shows the correct hand gesture.';
+          }
+        } else {
+          throw new Error('Image analysis API failed');
+        }
+      } catch (error) {
+        console.error('Error calling image analysis API:', error);
+        // Fallback to educational guidance
+        groqAnalysis = await analyzeImageWithGroq(userAnswer.imageUrl, question);
+        isCorrect = false; // Conservative approach when analysis fails
+      }
     }
 
     feedback.push({
@@ -107,7 +138,7 @@ async function evaluateAnswersWithGroq(questions: Question[], answers: UserAnswe
 async function analyzeImageWithGroq(imageUrl: string, question: Question): Promise<string> {
   try {
     const GROQ_API_KEY = process.env.GROQ_API_KEY;
-    
+
     if (!GROQ_API_KEY) {
       throw new Error('Groq API key not configured');
     }
@@ -147,7 +178,7 @@ Provide a detailed, educational response that helps the student learn ISL proper
     });
 
     const response = chatCompletion.choices[0]?.message?.content;
-    
+
     if (!response) {
       throw new Error('No response from Groq AI');
     }
@@ -156,7 +187,7 @@ Provide a detailed, educational response that helps the student learn ISL proper
 
   } catch (error) {
     console.error('Error analyzing with Groq:', error);
-    
+
     // Provide fallback analysis
     return `Unable to analyze image with AI. Please ensure:
     
@@ -184,7 +215,7 @@ Please review your hand position and try again if needed.`;
 async function callGroqAPI(prompt: string) {
   // This is our current Groq API integration
   const GROQ_API_KEY = process.env.GROQ_API_KEY;
-  
+
   if (!GROQ_API_KEY) {
     throw new Error('Groq API key not configured');
   }

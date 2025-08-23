@@ -75,34 +75,103 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Generate questions using Groq AI
+    // Always try to generate questions using Groq AI first
     const questions = await generateQuestionsWithGroq(setId);
 
     res.status(200).json({
       questions: questions,
       setId: setId,
-      generated: new Date().toISOString()
+      generated: new Date().toISOString(),
+      aiGenerated: true,
+      source: 'groq-ai'
     });
 
   } catch (error) {
-    console.error('Error generating questions:', error);
-    
-    // Fallback to predefined questions if Groq fails
-    const fallbackQuestions = fallbackQuestionSets[setId] || fallbackQuestionSets[1];
-    
-    res.status(200).json({
-      questions: fallbackQuestions,
-      setId: setId,
-      generated: new Date().toISOString(),
-      fallback: true,
-      message: 'Using fallback questions due to AI service unavailability'
-    });
+    console.error('Error generating questions with Groq:', error);
+
+    // Try alternative generation methods or enhanced fallback
+    try {
+      const enhancedQuestions = await generateEnhancedFallbackQuestions(setId);
+
+      res.status(200).json({
+        questions: enhancedQuestions,
+        setId: setId,
+        generated: new Date().toISOString(),
+        aiGenerated: false,
+        fallback: true,
+        source: 'enhanced-fallback',
+        message: 'Using enhanced fallback questions due to AI service unavailability'
+      });
+    } catch (fallbackError) {
+      // Final fallback to basic questions
+      const fallbackQuestions = fallbackQuestionSets[setId] || fallbackQuestionSets[1];
+
+      res.status(200).json({
+        questions: fallbackQuestions,
+        setId: setId,
+        generated: new Date().toISOString(),
+        aiGenerated: false,
+        fallback: true,
+        source: 'basic-fallback',
+        message: 'Using basic fallback questions due to all AI services being unavailable'
+      });
+    }
   }
+}
+
+async function generateEnhancedFallbackQuestions(setId: number): Promise<Question[]> {
+  // Enhanced fallback that creates more varied questions
+  const letterSets = {
+    1: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'], // Beginner
+    2: ['K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T'], // Intermediate  
+    3: ['U', 'V', 'W', 'X', 'Y', 'Z', 'A', 'E', 'I', 'O'], // Advanced
+    4: ['B', 'C', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'M'], // Expert
+    5: ['N', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X']  // Master
+  };
+
+  const explanations: { [key: string]: string } = {
+    'A': 'Form a fist with your thumb pointing upward along the side of your index finger.',
+    'B': 'Hold your hand upright with all four fingers extended and pressed together, thumb folded across your palm.',
+    'C': 'Curve your hand like you are holding a cup, with fingers and thumb forming a C shape.',
+    'D': 'Point your index finger upward while keeping other fingers closed, thumb touches middle finger.',
+    'E': 'Curl all fingers into a fist with fingertips touching your palm.',
+    'F': 'Touch your index finger and thumb together forming a circle, other fingers extended upward.',
+    'G': 'Point your index finger horizontally to the side, thumb pointing upward.',
+    'H': 'Extend your index and middle fingers horizontally, other fingers closed.',
+    'I': 'Extend only your pinky finger upward, other fingers closed in a fist.',
+    'J': 'Extend your pinky finger and draw a J shape in the air.',
+    'K': 'Extend index and middle fingers in a V shape, thumb between them.',
+    'L': 'Form an L shape with your index finger pointing up and thumb pointing sideways.',
+    'M': 'Fold your thumb under your first three fingers.',
+    'N': 'Fold your thumb under your first two fingers.',
+    'O': 'Curve all fingers and thumb to form a circle or oval shape.',
+    'P': 'Similar to K but pointing downward.',
+    'Q': 'Point your index finger and thumb downward.',
+    'R': 'Cross your index and middle fingers.',
+    'S': 'Make a fist with your thumb closed over your fingers.',
+    'T': 'Make a fist with your thumb between your index and middle fingers.',
+    'U': 'Extend your index and middle fingers upward, side by side.',
+    'V': 'Extend your index and middle fingers upward in a V shape.',
+    'W': 'Extend your index, middle, and ring fingers upward.',
+    'X': 'Bend your index finger into a hook shape.',
+    'Y': 'Extend your thumb and pinky finger, other fingers closed.',
+    'Z': 'Draw a Z shape in the air with your index finger.'
+  };
+
+  const letters = letterSets[setId as keyof typeof letterSets] || letterSets[1];
+
+  return letters.map((letter, index) => ({
+    id: index + 1,
+    question: `Give me the hand image that expresses the alphabet '${letter}'`,
+    options: ["Capture Image"],
+    correctAnswer: letter,
+    explanation: explanations[letter] || `Capture a clear image of your hand forming the correct ISL handshape for '${letter}'.`
+  }));
 }
 
 async function generateQuestionsWithGroq(setId: number): Promise<Question[]> {
   const GROQ_API_KEY = process.env.GROQ_API_KEY;
-  
+
   if (!GROQ_API_KEY) {
     throw new Error('Groq API key not configured');
   }
@@ -113,28 +182,28 @@ async function generateQuestionsWithGroq(setId: number): Promise<Question[]> {
 
   // Define difficulty levels and contexts
   const difficultyLevels = {
-    1: { 
-      level: "Beginner", 
+    1: {
+      level: "Beginner",
       context: "Basic alphabet recognition and simple hand formations for new learners",
       focus: "fundamental letter shapes, basic hand positions, common letters A-Z"
     },
-    2: { 
-      level: "Intermediate", 
+    2: {
+      level: "Intermediate",
       context: "Letter combinations, common confusions, and basic techniques",
       focus: "similar-looking letters, finger positioning details, basic transitions"
     },
-    3: { 
-      level: "Advanced", 
+    3: {
+      level: "Advanced",
       context: "Complex hand positions, transitions, and professional techniques",
       focus: "subtle differences, hand orientation, advanced letter formations"
     },
-    4: { 
-      level: "Expert", 
+    4: {
+      level: "Expert",
       context: "Linguistic principles, coarticulation, and advanced interpretation skills",
       focus: "sign language linguistics, professional interpretation, advanced techniques"
     },
-    5: { 
-      level: "Master", 
+    5: {
+      level: "Master",
       context: "Research-level concepts, morphophonology, and psycholinguistic analysis",
       focus: "academic concepts, research methodology, expert-level analysis"
     }
@@ -175,50 +244,72 @@ Generate the 10 questions now for Set ${setId} (${difficulty.level} level).`;
     const chatCompletion = await groq.chat.completions.create({
       messages: [
         {
+          role: "system",
+          content: "You are an expert Indian Sign Language (ISL) instructor. You must respond with valid JSON only, containing exactly 10 questions for image capture tasks."
+        },
+        {
           role: "user",
           content: prompt,
         },
       ],
       model: "llama-3.3-70b-versatile",
-      temperature: 0.7,
+      temperature: 0.3, // Lower temperature for more consistent output
       max_tokens: 2048,
     });
 
     const response = chatCompletion.choices[0]?.message?.content;
-    
+
     if (!response) {
       throw new Error('No response from Groq AI');
     }
-    
+
+    // Clean and extract JSON from response
+    let cleanedResponse = response.trim();
+
+    // Remove any markdown code blocks
+    cleanedResponse = cleanedResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+
     // Extract JSON from response
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       throw new Error('Invalid JSON response from Groq AI');
     }
-    
+
     const parsedResponse = JSON.parse(jsonMatch[0]);
-    
+
     if (!parsedResponse.questions || !Array.isArray(parsedResponse.questions)) {
       throw new Error('Invalid question format from Groq AI');
     }
 
-    // Validate and format questions
-    const questions: Question[] = parsedResponse.questions.slice(0, 10).map((q: any, index: number) => ({
-      id: index + 1,
-      question: q.question || `Give me the hand image that expresses the alphabet '${String.fromCharCode(65 + (index % 26))}'`,
-      options: ["Capture Image"],
-      correctAnswer: (typeof q.correctAnswer === 'string' && q.correctAnswer.trim().length === 1)
-        ? q.correctAnswer.toUpperCase()
-        : String.fromCharCode(65 + (index % 26)),
-      explanation: q.explanation || "Capture a clear image of your hand forming the correct ISL handshape for this letter."
-    }));
+    // Validate and format questions with robust error handling
+    const questions: Question[] = [];
+    const targetLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
 
-    // Ensure we have exactly 10 questions
-    if (questions.length < 10) {
-      throw new Error(`Only ${questions.length} questions generated, need 10`);
+    for (let i = 0; i < 10; i++) {
+      const q = parsedResponse.questions[i] || {};
+      const fallbackLetter = targetLetters[(setId - 1) * 10 + i] || targetLetters[i] || 'A';
+
+      questions.push({
+        id: i + 1,
+        question: (typeof q.question === 'string' && q.question.includes('alphabet'))
+          ? q.question
+          : `Give me the hand image that expresses the alphabet '${fallbackLetter}'`,
+        options: ["Capture Image"],
+        correctAnswer: (typeof q.correctAnswer === 'string' && q.correctAnswer.trim().length === 1 && /^[A-Z]$/.test(q.correctAnswer.toUpperCase()))
+          ? q.correctAnswer.toUpperCase()
+          : fallbackLetter,
+        explanation: (typeof q.explanation === 'string' && q.explanation.length > 10)
+          ? q.explanation
+          : `Capture a clear image of your hand forming the correct ISL handshape for letter '${fallbackLetter}'.`
+      });
     }
 
-    return questions.slice(0, 10);
+    // Final validation - ensure we have exactly 10 valid questions
+    if (questions.length !== 10) {
+      throw new Error(`Generated ${questions.length} questions instead of 10`);
+    }
+
+    return questions;
 
   } catch (error) {
     console.error('Groq AI generation error:', error);
