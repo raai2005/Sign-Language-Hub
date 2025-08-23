@@ -84,6 +84,33 @@ a {
     8px 8px 0px #d4c8b0;
 }
 
+/* Disable all hover effects when modal is open to prevent flickering */
+body.modal-open .old-school-card:not(.modal-card):hover {
+  transform: none !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
+}
+
+body.modal-open .classic-nav-item:hover {
+  background: transparent !important;
+  border-color: transparent !important;
+  color: inherit !important;
+}
+
+body.modal-open .btn-classic-primary:hover,
+body.modal-open .btn-classic-secondary:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+body.modal-open * {
+  pointer-events: none !important;
+}
+
+body.modal-open .modal-card,
+body.modal-open .modal-card * {
+  pointer-events: auto !important;
+}
+
 /* Prevent flickering on fixed positioned elements */
 .fixed {
   -webkit-backface-visibility: hidden;

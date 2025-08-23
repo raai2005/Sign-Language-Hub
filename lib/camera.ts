@@ -1,4 +1,5 @@
 // Camera utilities for exam image capture
+import { captureWithHandDetection, validateHandGesture } from './handDetection';
 
 export interface CameraOptions {
   width?: number;
@@ -47,25 +48,46 @@ export class CameraCapture {
     }
   }
 
-  captureImage(quality: number = 0.8): string | null {
+  captureImage(quality: number = 0.8, cropToHand: boolean = true): {
+    image: string | null;
+    handDetected: boolean;
+    validation?: { isValid: boolean; confidence: number; feedback: string }
+  } {
     if (!this.video || !this.canvas) {
       throw new Error('Video or canvas element not found');
     }
 
-    const context = this.canvas.getContext('2d');
-    if (!context) {
-      throw new Error('Unable to get canvas context');
+    if (cropToHand) {
+      // Use advanced hand detection and cropping
+      const result = captureWithHandDetection(this.video, this.canvas, quality);
+
+      if (result.image) {
+        // Validate the captured hand gesture
+        const validation = validateHandGesture(this.canvas);
+        return {
+          image: result.image,
+          handDetected: result.handDetected,
+          validation
+        };
+      }
+
+      return { image: null, handDetected: false };
+    } else {
+      // Original full-frame capture
+      const context = this.canvas.getContext('2d');
+      if (!context) {
+        throw new Error('Unable to get canvas context');
+      }
+
+      this.canvas.width = this.video.videoWidth;
+      this.canvas.height = this.video.videoHeight;
+      context.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
+
+      return {
+        image: this.canvas.toDataURL('image/jpeg', quality),
+        handDetected: false
+      };
     }
-
-    // Set canvas dimensions to match video
-    this.canvas.width = this.video.videoWidth;
-    this.canvas.height = this.video.videoHeight;
-
-    // Draw the current video frame to canvas
-    context.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
-
-    // Convert to base64 image data
-    return this.canvas.toDataURL('image/jpeg', quality);
   }
 
   stopCamera(): void {
@@ -125,8 +147,8 @@ export async function requestCameraPermission(): Promise<boolean> {
 
 // Helper function to compress image
 export function compressImage(
-  imageData: string, 
-  maxWidth: number = 800, 
+  imageData: string,
+  maxWidth: number = 800,
   quality: number = 0.8
 ): Promise<string> {
   return new Promise((resolve) => {

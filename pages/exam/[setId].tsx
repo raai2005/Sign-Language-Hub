@@ -3,8 +3,8 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import Navbar from '../../components/Navbar';
-import Footer from '../../components/Footer';
 import { CameraCapture, isCameraSupported, compressImage } from '../../lib/camera';
+import { detectHandInRealTime } from '../../lib/handDetection';
 
 interface Question {
   id: number;
@@ -70,9 +70,15 @@ export default function ExamPage() {
   const [showCameraFallback, setShowCameraFallback] = useState(false);
   const [autoAdvanceTimer, setAutoAdvanceTimer] = useState<NodeJS.Timeout | null>(null);
   const [autoAdvanceCountdown, setAutoAdvanceCountdown] = useState<number | null>(null);
+  const [handDetectionStatus, setHandDetectionStatus] = useState<{
+    detecting: boolean;
+    stableFrames: number;
+    confidence: number;
+  }>({ detecting: false, stableFrames: 0, confidence: 0 });
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cameraCapture = useRef<CameraCapture | null>(null);
+  const handDetectionCleanup = useRef<(() => void) | null>(null);
 
   const testSetTitles: { [key: string]: string } = {
     '1': 'Basic Alphabet Set',
@@ -87,6 +93,30 @@ export default function ExamPage() {
       generateQuestions();
     }
   }, [setId]);
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (showCamera || showImmediateFeedback || showAnswerConfirm) {
+      // Disable scroll on body and add modal-open class to disable hover effects
+      const originalOverflow = document.body.style.overflow;
+      const originalPosition = document.body.style.position;
+
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
+      document.body.classList.add('modal-open');
+
+      return () => {
+        // Restore original scroll behavior
+        document.body.style.overflow = originalOverflow;
+        document.body.style.position = originalPosition;
+        document.body.style.width = '';
+        document.body.style.height = '';
+        document.body.classList.remove('modal-open');
+      };
+    }
+  }, [showCamera, showImmediateFeedback, showAnswerConfirm]);
 
   const generateQuestions = async () => {
     setLoading(true);
@@ -162,8 +192,34 @@ export default function ExamPage() {
         await cameraCapture.current.startCamera({ width: 640, height: 480, facingMode: 'user' });
         setIsStartingCamera(false);
         setCameraRetryCount(0); // Reset retry count on success
-        // Begin countdown for auto-capture
-        setCountdown(5);
+
+        // Start hand detection for auto-capture instead of countdown
+        if (videoRef.current && canvasRef.current) {
+          setHandDetectionStatus({ detecting: true, stableFrames: 0, confidence: 0 });
+
+          handDetectionCleanup.current = detectHandInRealTime(
+            videoRef.current,
+            canvasRef.current,
+            () => {
+              // Auto capture when stable hand is detected
+              console.log('🎯 Hand detected - auto capturing!');
+              setHandDetectionStatus(prev => ({ ...prev, detecting: false }));
+              takePicture();
+            },
+            () => {
+              // Optional: callback when hand is lost
+              console.log('👋 Hand detection lost, waiting for stable positioning...');
+            },
+            {
+              requiredStableFrames: 6, // Even more responsive
+              confidenceThreshold: 35,  // Slightly higher to avoid face detection
+              checkInterval: 250,       // Check every 250ms for better performance
+              onStatusUpdate: (status) => {
+                setHandDetectionStatus(status);
+              }
+            }
+          );
+        }
       } catch (err) {
         console.error('Error accessing camera:', err);
         setIsStartingCamera(false);
@@ -218,26 +274,17 @@ export default function ExamPage() {
           cameraCapture.current.stopCamera();
           cameraCapture.current = null;
         }
+        if (handDetectionCleanup.current) {
+          handDetectionCleanup.current();
+          handDetectionCleanup.current = null;
+        }
+        setHandDetectionStatus({ detecting: false, stableFrames: 0, confidence: 0 });
         setCountdown(null);
         setIsStartingCamera(false);
         setCameraError(null);
       }
     };
   }, [showCamera, cameraRetryCount]);
-
-  // Countdown effect to auto-capture
-  useEffect(() => {
-    if (!showCamera) return;
-    if (countdown === null) return;
-    if (countdown <= 0) {
-      // Auto capture
-      takePicture();
-      setCountdown(null);
-      return;
-    }
-    const timer = setTimeout(() => setCountdown((c) => (c ?? 0) - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [countdown, showCamera]);
 
   // Auto-advance after showing immediate feedback
   useEffect(() => {
@@ -294,10 +341,15 @@ export default function ExamPage() {
     if (!cameraCapture.current) return;
 
     try {
-      const imageData = cameraCapture.current.captureImage(0.8);
-      if (imageData) {
+      const captureResult = cameraCapture.current.captureImage(0.8);
+      if (captureResult.image) {
+        // Show hand detection feedback if available
+        if (captureResult.validation && !captureResult.validation.isValid) {
+          console.warn('Hand positioning warning:', captureResult.validation.feedback);
+        }
+
         // Compress the image
-        const compressedImage = await compressImage(imageData, 800, 0.7);
+        const compressedImage = await compressImage(captureResult.image, 800, 0.7);
 
         // Upload to Cloudinary
         const imageUrl = await cameraCapture.current.uploadImage(
@@ -315,6 +367,7 @@ export default function ExamPage() {
 
         try {
           console.log(`Immediately analyzing captured image for question ${currentQuestion.id}`);
+          console.log(`Hand detection result: ${captureResult.handDetected ? 'Hand detected' : 'Center crop used'}`);
 
           const analysisResponse = await fetch('/api/analyze-image', {
             method: 'POST',
@@ -380,6 +433,11 @@ export default function ExamPage() {
       cameraCapture.current.stopCamera();
       cameraCapture.current = null;
     }
+    if (handDetectionCleanup.current) {
+      handDetectionCleanup.current();
+      handDetectionCleanup.current = null;
+    }
+    setHandDetectionStatus({ detecting: false, stableFrames: 0, confidence: 0 });
     setShowCamera(false);
     setCameraError(null);
   };
@@ -725,8 +783,6 @@ export default function ExamPage() {
               </div>
             </div>
           </div>
-
-          <Footer />
         </div>
       </>
     );
@@ -819,34 +875,34 @@ export default function ExamPage() {
               {/* Camera Modal */}
               {showCamera && (
                 <div
-                  className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
-                  onClick={(e) => {
-                    // Only allow closing via buttons, not backdrop clicks
-                    if (e.target === e.currentTarget) {
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }
-                  }}
-                  onMouseMove={(e) => {
-                    // Prevent any mouse movement from affecting the modal
-                    e.stopPropagation();
-                  }}
+                  className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999]"
                   style={{
-                    pointerEvents: 'auto',
-                    userSelect: 'none',
-                    cursor: 'default'
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100vw',
+                    height: '100vh',
+                    overflowY: 'hidden',
+                    pointerEvents: 'auto'
+                  }}
+                  onClick={(e) => {
+                    // Allow closing only if clicking the backdrop directly
+                    if (e.target === e.currentTarget) {
+                      stopCamera();
+                    }
                   }}
                 >
                   <div
-                    className="old-school-card modal-card bg-white p-8 max-w-2xl w-full mx-4"
-                    onClick={(e) => {
-                      // Prevent clicks inside modal from bubbling up
-                      e.stopPropagation();
-                    }}
+                    className="old-school-card modal-card bg-white p-8 max-w-2xl w-full mx-4 relative"
                     style={{
+                      maxHeight: '90vh',
+                      overflowY: 'auto',
                       pointerEvents: 'auto',
-                      position: 'relative',
-                      zIndex: 1
+                      zIndex: 10000
+                    }}
+                    onClick={(e) => {
+                      // Prevent modal content clicks from bubbling
+                      e.stopPropagation();
                     }}
                   >
                     <h3 className="text-xl font-bold classic-title text-center mb-6 uppercase">Capture Your Sign</h3>
@@ -896,28 +952,86 @@ export default function ExamPage() {
                             ref={canvasRef}
                             className="hidden"
                           />
-                          <div className="absolute inset-0 border-2 border-dashed border-orange-300 rounded-xl pointer-events-none"></div>
 
-                          {/* Countdown overlay */}
+                          {/* Hand detection zone with face exclusion */}
+                          <div className="absolute inset-0 pointer-events-none">
+                            {/* Face exclusion zone (top 30%) */}
+                            <div className="absolute top-0 left-0 right-0 h-[30%] bg-red-500 bg-opacity-10 border-2 border-red-400 border-dashed">
+                              <div className="absolute top-2 left-2 text-red-400 text-xs font-semibold">
+                                😊 Face area - hands not detected here
+                              </div>
+                            </div>
+
+                            {/* Hand detection zone (bottom 70%) */}
+                            <div className="absolute top-[30%] left-0 right-0 bottom-0 border-2 border-green-400 border-dashed bg-green-400 bg-opacity-5">
+                              <div className="absolute top-2 left-2 text-green-400 text-xs font-semibold">
+                                ✋ Hand detection zone
+                              </div>
+
+                              {/* Corner indicators for hand zone */}
+                              <div className="absolute top-0 left-0 w-4 h-4 border-l-2 border-t-2 border-green-500"></div>
+                              <div className="absolute top-0 right-0 w-4 h-4 border-r-2 border-t-2 border-green-500"></div>
+                              <div className="absolute bottom-0 left-0 w-4 h-4 border-l-2 border-b-2 border-green-500"></div>
+                              <div className="absolute bottom-0 right-0 w-4 h-4 border-r-2 border-b-2 border-green-500"></div>
+                            </div>
+
+                            {/* Hand positioning instructions */}
+                            <div className="absolute top-2 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-75 text-white px-3 py-1 rounded text-sm font-semibold">
+                              ✋ Show your hand below face level
+                            </div>
+
+                            {/* Detection feedback indicator */}
+                            {handDetectionStatus.detecting && handDetectionStatus.stableFrames > 0 && (
+                              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-green-500 bg-opacity-90 text-white px-4 py-2 rounded-lg text-sm font-semibold animate-pulse">
+                                🎯 Hand detected! Keep steady... ({handDetectionStatus.stableFrames}/6)
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Hand detection status overlay */}
                           {isStartingCamera && (
                             <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 rounded-xl">
                               <div className="text-white text-lg">Starting camera...</div>
                             </div>
                           )}
-                          {countdown !== null && !isStartingCamera && (
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <div className="w-20 h-20 rounded-full bg-black bg-opacity-50 flex items-center justify-center">
-                                <span className="text-white text-3xl font-bold">{countdown}</span>
-                              </div>
+                          {!isStartingCamera && !cameraError && (
+                            <div className="absolute top-4 left-4 bg-black bg-opacity-90 text-white px-4 py-3 rounded-lg text-sm min-w-[200px]">
+                              {handDetectionStatus.detecting ? (
+                                <>
+                                  <div className="flex items-center space-x-2 mb-2">
+                                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                                    <span>🤚 Detecting hand...</span>
+                                  </div>
+                                  <div className="text-xs opacity-75 mb-1">
+                                    Stability: {handDetectionStatus.stableFrames}/8 frames
+                                  </div>
+                                  <div className="text-xs opacity-75">
+                                    Confidence: {handDetectionStatus.confidence}%
+                                  </div>
+                                  {handDetectionStatus.stableFrames > 0 && (
+                                    <div className="text-xs text-green-400 mt-1">
+                                      ✓ Hand detected! Keep steady...
+                                    </div>
+                                  )}
+                                </>
+                              ) : (
+                                <>
+                                  <div className="flex items-center space-x-2">
+                                    <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                                    <span>👋 Ready to detect</span>
+                                  </div>
+                                  <div className="text-xs mt-1 opacity-75">
+                                    Show your hand in the lower area (not your face)
+                                  </div>
+                                </>
+                              )}
                             </div>
                           )}
                         </div>
 
                         <div className="text-center classic-subtitle mb-6 italic">
-                          Position your hand clearly in the frame and form the correct sign. {countdown !== null ? `Auto capture in ${countdown}s...` : ''}
-                        </div>
-
-                        <div className="flex space-x-4">
+                          Position your hand in the lower part of the camera view (below your face). The AI will automatically detect your hand gesture and capture when stable.
+                        </div>                    <div className="flex space-x-4">
                           <button
                             onClick={takePicture}
                             disabled={isStartingCamera || evaluatingImage}
@@ -951,8 +1065,32 @@ export default function ExamPage() {
 
               {/* Answer confirmation popup */}
               {showAnswerConfirm && answerConfirmImage && (
-                <div className="fixed inset-0 bg-black bg-opacity-75 flex items-end justify-center z-[60]">
-                  <div className="mb-10 old-school-card modal-card bg-white px-8 py-6 flex items-center space-x-6">
+                <div
+                  className="fixed inset-0 bg-black bg-opacity-75 flex items-end justify-center z-[9999]"
+                  style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100vw',
+                    height: '100vh',
+                    overflowY: 'hidden',
+                    pointerEvents: 'auto'
+                  }}
+                  onClick={(e) => {
+                    if (e.target === e.currentTarget) {
+                      setShowAnswerConfirm(false);
+                      setAnswerConfirmImage(null);
+                    }
+                  }}
+                >
+                  <div
+                    className="mb-10 old-school-card modal-card bg-white px-8 py-6 flex items-center space-x-6"
+                    style={{
+                      pointerEvents: 'auto',
+                      zIndex: 10000
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <div className="w-14 h-14 border-4 border-gray-800 overflow-hidden">
                       <img src={answerConfirmImage} alt="Your answer" className="w-full h-full object-cover" />
                     </div>
@@ -967,35 +1105,33 @@ export default function ExamPage() {
               {/* Immediate AI Feedback Modal */}
               {showImmediateFeedback && immediateAnalysis && (
                 <div
-                  className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[70]"
+                  className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999]"
+                  style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100vw',
+                    height: '100vh',
+                    overflowY: 'hidden',
+                    pointerEvents: 'auto'
+                  }}
                   onClick={(e) => {
-                    // Only close if clicking directly on backdrop, not bubbled events
+                    // Prevent any backdrop clicks from closing - auto-advance only
                     if (e.target === e.currentTarget) {
-                      // Don't close the modal - user should use buttons
                       e.preventDefault();
                       e.stopPropagation();
                     }
                   }}
-                  onMouseMove={(e) => {
-                    // Prevent any mouse movement from affecting the modal
-                    e.stopPropagation();
-                  }}
-                  style={{
-                    pointerEvents: 'auto',
-                    userSelect: 'none',
-                    cursor: 'default'
-                  }}
                 >
                   <div
                     className="old-school-card modal-card bg-white p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+                    style={{
+                      pointerEvents: 'auto',
+                      zIndex: 10000
+                    }}
                     onClick={(e) => {
                       // Prevent clicks inside modal from bubbling up
                       e.stopPropagation();
-                    }}
-                    style={{
-                      pointerEvents: 'auto',
-                      position: 'relative',
-                      zIndex: 1
                     }}
                   >
                     {evaluatingImage ? (
@@ -1143,9 +1279,7 @@ export default function ExamPage() {
             </div>
           </div>
         </div>
-
-        <Footer />
-      </div>
+      </div >
     </>
   );
 }
