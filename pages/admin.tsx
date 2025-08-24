@@ -414,43 +414,38 @@ export default function Admin() {
               </h2>
               
               <div className="space-y-4 max-h-96 overflow-y-auto">
-                {(activeTab === 'words' ? words : sentences).map((item) => (
-                  <div key={item.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-semibold high-contrast-text">
-                        {activeTab === 'words' ? item.word : item.sentence}
-                      </h3>
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => handleEdit(item)}
-                          className="text-blue-600 hover:text-blue-700 text-sm"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(item.id)}
-                          className="text-red-600 hover:text-red-700 text-sm"
-                        >
-                          Delete
-                        </button>
+                {activeTab === 'words' ? (
+                  words.map((item) => (
+                    <div key={item.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="font-semibold high-contrast-text">{item.word}</h3>
+                        <div className="flex space-x-2">
+                          <button onClick={() => handleEdit(item)} className="text-blue-600 hover:text-blue-700 text-sm">Edit</button>
+                          <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-700 text-sm">Delete</button>
+                        </div>
                       </div>
+                      <p className="text-sm text-gray-600 mb-1">Category: {item.category}</p>
+                      <p className="text-sm text-gray-600 mb-1">Difficulty: {item.difficulty}</p>
+                      <p className="text-xs text-gray-500">{item.description}</p>
                     </div>
-                    <p className="text-sm text-gray-600 mb-1">
-                      Category: {item.category}
-                    </p>
-                    <p className="text-sm text-gray-600 mb-1">
-                      Difficulty: {item.difficulty}
-                    </p>
-                    {activeTab === 'sentences' && (
-                      <p className="text-sm text-gray-600 mb-1 italic">
-                        "{item.translation}"
-                      </p>
-                    )}
-                    <p className="text-xs text-gray-500">
-                      {activeTab === 'words' ? item.description : item.islSign}
-                    </p>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  sentences.map((item) => (
+                    <div key={item.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="font-semibold high-contrast-text">{item.sentence}</h3>
+                        <div className="flex space-x-2">
+                          <button onClick={() => handleEdit(item)} className="text-blue-600 hover:text-blue-700 text-sm">Edit</button>
+                          <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-700 text-sm">Delete</button>
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-1">Category: {item.category}</p>
+                      <p className="text-sm text-gray-600 mb-1">Difficulty: {item.difficulty}</p>
+                      <p className="text-sm text-gray-600 mb-1 italic">"{item.translation}"</p>
+                      <p className="text-xs text-gray-500">{item.islSign}</p>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>

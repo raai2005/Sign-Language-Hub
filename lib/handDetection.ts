@@ -155,6 +155,16 @@ export function captureWithHandDetection(
     quality: number = 0.8
 ): { image: string | null; handDetected: boolean; bounds?: HandBounds } {
     try {
+        // Ensure video has valid dimensions
+        if (!video.videoWidth || !video.videoHeight) {
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return { image: null, handDetected: false };
+            // As a last resort, draw the element directly; browsers will use intrinsic size
+            canvas.width = 640;
+            canvas.height = 480;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            return { image: canvas.toDataURL('image/jpeg', quality), handDetected: false };
+        }
         // First, detect hand bounds
         const detection = detectHandBounds(canvas, video.videoWidth, video.videoHeight);
 
@@ -168,7 +178,7 @@ export function captureWithHandDetection(
                 handDetected: true,
                 bounds: primaryHand
             };
-        } else {
+    } else {
             // Fallback to center crop if no hand detected
             const context = canvas.getContext('2d');
             if (!context) return { image: null, handDetected: false };
@@ -195,7 +205,17 @@ export function captureWithHandDetection(
         }
     } catch (error) {
         console.error('Error in hand detection capture:', error);
-        return { image: null, handDetected: false };
+        // Final fallback to try to capture something
+        try {
+            const context = canvas.getContext('2d');
+            if (!context) return { image: null, handDetected: false };
+            canvas.width = 640;
+            canvas.height = 480;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            return { image: canvas.toDataURL('image/jpeg', 0.7), handDetected: false };
+        } catch {
+            return { image: null, handDetected: false };
+        }
     }
 }
 

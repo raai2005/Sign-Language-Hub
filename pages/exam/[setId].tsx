@@ -75,10 +75,13 @@ export default function ExamPage() {
     stableFrames: number;
     confidence: number;
   }>({ detecting: false, stableFrames: 0, confidence: 0 });
+  const [regenerating, setRegenerating] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cameraCapture = useRef<CameraCapture | null>(null);
   const handDetectionCleanup = useRef<(() => void) | null>(null);
+  const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string | undefined>(undefined);
 
   const testSetTitles: { [key: string]: string } = {
     '1': 'Basic Alphabet Set',
@@ -87,6 +90,18 @@ export default function ExamPage() {
     '4': 'Expert Level',
     '5': 'Master Challenge'
   };
+
+  // Derived scoring preview for clearer feedback after each question
+  const getAnswerCorrectness = (answer: UserAnswer): boolean => {
+    if (typeof answer.immediateAnalysis?.isCorrect === 'boolean') return answer.immediateAnalysis.isCorrect;
+    const q = questions.find(q => q.id === answer.questionId);
+    return q ? answer.selectedAnswer === q.correctAnswer : false;
+  };
+  const previousCorrect = userAnswers.reduce((acc, a) => acc + (getAnswerCorrectness(a) ? 1 : 0), 0);
+  const currentQuestionObj = questions[currentQuestionIndex];
+  const currentIsCorrect = immediateAnalysis ? immediateAnalysis.isCorrect : (selectedAnswer && currentQuestionObj ? selectedAnswer === currentQuestionObj.correctAnswer : false);
+  const scorePreview = previousCorrect + (showImmediateFeedback ? (currentIsCorrect ? 1 : 0) : 0);
+  const totalAnsweredPreview = currentQuestionIndex + (showImmediateFeedback ? 1 : 0);
 
   useEffect(() => {
     if (setId) {
@@ -162,7 +177,32 @@ export default function ExamPage() {
       },
       // Add more sample questions...
     ];
-    return sampleQuestions.slice(0, 10);
+    return sampleQuestions.slice(0, 5);
+  };
+
+  const regenerateQuestions = async () => {
+    // Prevent losing progress without confirmation
+    if (userAnswers.length > 0 || currentQuestionIndex > 0) {
+      const proceed = window.confirm('Regenerating will restart this exam with new AI questions. Continue?');
+      if (!proceed) return;
+    }
+    try {
+      setRegenerating(true);
+      // Ensure camera modal is closed
+      if (showCamera) {
+        stopCamera();
+      }
+      // Reset state
+      setQuestions([]);
+      setCurrentQuestionIndex(0);
+      setUserAnswers([]);
+      setSelectedAnswer('');
+      setCapturedImage(null);
+      setImmediateAnalysis(null);
+      await generateQuestions();
+    } finally {
+      setRegenerating(false);
+    }
   };
 
   const handleAnswerSelect = (answer: string) => {
@@ -188,8 +228,23 @@ export default function ExamPage() {
       try {
         setIsStartingCamera(true);
         setCameraError(null);
-        cameraCapture.current = new CameraCapture(videoRef.current, canvasRef.current);
-        await cameraCapture.current.startCamera({ width: 640, height: 480, facingMode: 'user' });
+  // Discover devices (once per open)
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  const cams = devices.filter(d => d.kind === 'videoinput');
+  setVideoDevices(cams);
+
+  cameraCapture.current = new CameraCapture(videoRef.current, canvasRef.current);
+  await cameraCapture.current.startCamera({ width: 640, height: 480, facingMode: 'user', deviceId: selectedDeviceId });
+        // Ensure video metadata is available so width/height are non-zero
+        if (videoRef.current && (videoRef.current.videoWidth === 0 || videoRef.current.videoHeight === 0)) {
+          await new Promise<void>((resolve) => {
+            const onMeta = () => {
+              videoRef.current?.removeEventListener('loadedmetadata', onMeta);
+              resolve();
+            };
+            videoRef.current?.addEventListener('loadedmetadata', onMeta, { once: true });
+          });
+        }
         setIsStartingCamera(false);
         setCameraRetryCount(0); // Reset retry count on success
 
@@ -341,8 +396,8 @@ export default function ExamPage() {
     if (!cameraCapture.current) return;
 
     try {
-      const captureResult = cameraCapture.current.captureImage(0.8);
-      if (captureResult.image) {
+  const captureResult = cameraCapture.current.captureImage(0.8);
+  if (captureResult.image) {
         // Show hand detection feedback if available
         if (captureResult.validation && !captureResult.validation.isValid) {
           console.warn('Hand positioning warning:', captureResult.validation.feedback);
@@ -420,6 +475,10 @@ export default function ExamPage() {
 
         // Show immediate feedback modal (auto-advance handled by useEffect)
         setShowImmediateFeedback(true);
+      } else {
+        // No frame produced — likely video not ready yet
+        setCameraError('Could not read a frame from the camera. Please wait a moment and try again.');
+        return;
       }
     } catch (error) {
       console.error('Error capturing image:', error);
@@ -802,11 +861,21 @@ export default function ExamPage() {
         <div className="pt-24 pb-16">
           <div className="max-w-6xl mx-auto px-4">
             {/* Progress Header */}
-            <div className="text-center mb-8 classic-bg-paper p-8 border-4 border-gray-800">
-              <h1 className="text-4xl font-bold classic-title mb-6 uppercase">
-                {testSetTitles[setId as string]}
-              </h1>
-              <div className="flex items-center justify-center space-x-6 mb-6">
+            <div className="mb-8 classic-bg-paper p-8 border-4 border-gray-800">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <h1 className="text-4xl font-bold classic-title uppercase">
+                  {testSetTitles[setId as string]}
+                </h1>
+                {/* Regenerate button shown before answering any question */}
+                <button
+                  onClick={regenerateQuestions}
+                  disabled={regenerating}
+                  className={`btn-classic-secondary ${regenerating ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {regenerating ? 'RESHUFFLING…' : 'REGENERATE QUESTIONS'}
+                </button>
+              </div>
+              <div className="flex items-center justify-center space-x-6 mt-6">
                 <span className="text-lg font-bold classic-title uppercase">
                   Question {currentQuestionIndex + 1} of {questions.length}
                 </span>
@@ -915,7 +984,7 @@ export default function ExamPage() {
                           </svg>
                         </div>
                         <h4 className="text-lg font-bold classic-title mb-4 uppercase text-red-700">Camera Access Issue</h4>
-                        <div className="classic-subtitle mb-6 italic text-red-700">{cameraError}</div>
+                        <div className="classic-subtitle mb-6 italic text-red-700">{cameraError} Ensure the site has camera permission (click the camera icon in the address bar). Close other apps that might be using the camera (Teams/Zoom), then try again.</div>
 
                         {cameraRetryCount < 1 ? (
                           <div className="mb-6">
@@ -931,16 +1000,56 @@ export default function ExamPage() {
                           </div>
                         )}
 
-                        <button
-                          onClick={stopCamera}
-                          className="btn-classic-secondary"
-                        >
-                          CLOSE NOW
-                        </button>
+                        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                          <button
+                            onClick={() => {
+                              stopCamera();
+                              setShowCamera(false);
+                              setShowCameraFallback(true);
+                            }}
+                            className="btn-classic-primary"
+                          >
+                            USE FILE UPLOAD INSTEAD
+                          </button>
+                          <button
+                            onClick={stopCamera}
+                            className="btn-classic-secondary"
+                          >
+                            CLOSE NOW
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       <>
                         <div className="relative mb-6">
+                          {/* Camera selection */}
+                          {videoDevices.length > 1 && (
+                            <div className="mb-3 flex items-center gap-2">
+                              <label className="text-sm font-semibold">Camera:</label>
+                              <select
+                                value={selectedDeviceId || ''}
+                                onChange={async (e) => {
+                                  setSelectedDeviceId(e.target.value || undefined);
+                                  try {
+                                    setIsStartingCamera(true);
+                                    if (cameraCapture.current) {
+                                      cameraCapture.current.stopCamera();
+                                    }
+                                    cameraCapture.current = new CameraCapture(videoRef.current!, canvasRef.current!);
+                                    await cameraCapture.current.startCamera({ width: 640, height: 480, deviceId: e.target.value || undefined });
+                                  } finally {
+                                    setIsStartingCamera(false);
+                                  }
+                                }}
+                                className="border-2 border-gray-800 p-2 text-sm"
+                              >
+                                <option value="">Default</option>
+                                {videoDevices.map(d => (
+                                  <option key={d.deviceId} value={d.deviceId}>{d.label || `Camera ${d.deviceId.slice(0,4)}...`}</option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
                           <video
                             ref={videoRef}
                             className="w-full h-64 classic-video-player classic-video-player-mirrored object-cover"
@@ -1170,6 +1279,35 @@ export default function ExamPage() {
                             <img src={capturedImage} alt="Your sign" className="retro-image w-40 h-40 object-cover mx-auto border-4 border-gray-800" />
                           </div>
                         )}
+
+                        {/* Clear per-question result + running score */}
+                        <div className="mb-8">
+                          <div className={`p-4 border-2 ${immediateAnalysis.isCorrect ? 'border-green-600 bg-green-50' : 'border-red-600 bg-red-50'}`}>
+                            <div className="flex items-center justify-between">
+                              <div className="font-bold classic-title uppercase">
+                                {immediateAnalysis.isCorrect ? 'Question Result: Correct' : 'Question Result: Incorrect'}
+                              </div>
+                              <div className="classic-subtitle text-sm italic">
+                                Confidence: {immediateAnalysis.confidence}%
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 p-4 border-2 border-gray-800 bg-white">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="font-semibold">Running Score</div>
+                              <div className="font-mono">
+                                {scorePreview} / {questions.length}
+                              </div>
+                            </div>
+                            <div className="w-full bg-gray-300 h-3">
+                              <div className="bg-gray-800 h-3" style={{ width: `${(scorePreview / Math.max(questions.length, 1)) * 100}%` }}></div>
+                            </div>
+                            <div className="text-xs text-gray-600 mt-2">
+                              Answered: {totalAnsweredPreview} of {questions.length}
+                            </div>
+                          </div>
+                        </div>
 
                         <div className="mb-8 border-l-4 border-gray-800 pl-6">
                           <h4 className="font-bold classic-title text-base uppercase mb-3">AI Analysis:</h4>

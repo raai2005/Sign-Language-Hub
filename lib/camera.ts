@@ -6,6 +6,7 @@ export interface CameraOptions {
   height?: number;
   facingMode?: 'user' | 'environment';
   quality?: number;
+  deviceId?: string;
 }
 
 export class CameraCapture {
@@ -25,22 +26,46 @@ export class CameraCapture {
     const {
       width = 640,
       height = 480,
-      facingMode = 'user'
+      facingMode = 'user',
+      deviceId
     } = options;
 
     try {
+      const videoConstraints: MediaTrackConstraints = deviceId
+        ? { deviceId: { exact: deviceId }, width: { ideal: width }, height: { ideal: height } }
+        : { width: { ideal: width }, height: { ideal: height }, facingMode };
+
       this.stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: width },
-          height: { ideal: height },
-          facingMode: facingMode
-        },
+        video: videoConstraints,
         audio: false
       });
 
       if (this.video) {
         this.video.srcObject = this.stream;
-        this.video.play();
+
+        // Wait for metadata so videoWidth/videoHeight are available
+        await new Promise<void>((resolve, reject) => {
+          const v = this.video!;
+          const onReady = () => {
+            v.removeEventListener('loadedmetadata', onReady);
+            v.removeEventListener('canplay', onReady);
+            resolve();
+          };
+          const onError = (e: Event) => {
+            v.removeEventListener('error', onError);
+            reject(new Error('Video element failed to load stream'));
+          };
+
+          if (v.readyState >= 2 && v.videoWidth > 0 && v.videoHeight > 0) {
+            resolve();
+          } else {
+            v.addEventListener('loadedmetadata', onReady, { once: true });
+            v.addEventListener('canplay', onReady, { once: true });
+            v.addEventListener('error', onError, { once: true });
+          }
+        });
+
+        await this.video.play();
       }
     } catch (error) {
       console.error('Error accessing camera:', error);

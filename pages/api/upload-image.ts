@@ -26,14 +26,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Check if Cloudinary is configured
     if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-      console.log('Cloudinary not configured, using fallback simulation');
-      
-      // Fallback to simulation if Cloudinary not configured
+      console.log('Cloudinary not configured, returning data URL as fallback');
+
+      // If the client sent a data URL, just echo it back so the UI can render the exact image
+      if (typeof imageData === 'string' && imageData.startsWith('data:')) {
+        return res.status(200).json({
+          success: true,
+          imageUrl: imageData,
+          message: 'Image kept locally (Cloudinary not configured)',
+          fallback: true
+        });
+      }
+
+      // Otherwise, create a demo placeholder to avoid breaking the flow
       const timestamp = Date.now();
       const simulatedUrl = `https://res.cloudinary.com/demo/image/upload/v${timestamp}/sign-language-exams/set_${setId}_question_${questionId}_${timestamp}.jpg`;
-      
-      return res.status(200).json({ 
-        success: true, 
+      return res.status(200).json({
+        success: true,
         imageUrl: simulatedUrl,
         message: 'Image upload simulated (Cloudinary not configured)',
         fallback: true

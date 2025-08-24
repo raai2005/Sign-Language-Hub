@@ -9,58 +9,54 @@ interface Question {
   explanation: string;
 }
 
-// Fallback questions in case Groq API fails
-const fallbackQuestionSets: { [key: number]: Question[] } = {
-  1: Array.from({ length: 10 }, (_, i) => {
-    const letter = String.fromCharCode(65 + ((i + 0) % 26));
-    return {
-      id: i + 1,
-      question: `Give me the hand image that expresses the alphabet '${letter}'`,
-      options: ["Capture Image"],
-      correctAnswer: letter,
-      explanation: `Capture a clear image of your hand forming the correct ISL handshape for '${letter}'.`
-    };
-  }),
-  2: Array.from({ length: 10 }, (_, i) => {
-    const letter = String.fromCharCode(65 + ((i + 5) % 26));
-    return {
-      id: i + 1,
-      question: `Give me the hand image that expresses the alphabet '${letter}'`,
-      options: ["Capture Image"],
-      correctAnswer: letter,
-      explanation: `Capture a clear image of your hand forming the correct ISL handshape for '${letter}'.`
-    };
-  }),
-  3: Array.from({ length: 10 }, (_, i) => {
-    const letter = String.fromCharCode(65 + ((i + 10) % 26));
-    return {
-      id: i + 1,
-      question: `Give me the hand image that expresses the alphabet '${letter}'`,
-      options: ["Capture Image"],
-      correctAnswer: letter,
-      explanation: `Capture a clear image of your hand forming the correct ISL handshape for '${letter}'.`
-    };
-  }),
-  4: Array.from({ length: 10 }, (_, i) => {
-    const letter = String.fromCharCode(65 + ((i + 15) % 26));
-    return {
-      id: i + 1,
-      question: `Give me the hand image that expresses the alphabet '${letter}'`,
-      options: ["Capture Image"],
-      correctAnswer: letter,
-      explanation: `Capture a clear image of your hand forming the correct ISL handshape for '${letter}'.`
-    };
-  }),
-  5: Array.from({ length: 10 }, (_, i) => {
-    const letter = String.fromCharCode(65 + ((i + 20) % 26));
-    return {
-      id: i + 1,
-      question: `Give me the hand image that expresses the alphabet '${letter}'`,
-      options: ["Capture Image"],
-      correctAnswer: letter,
-      explanation: `Capture a clear image of your hand forming the correct ISL handshape for '${letter}'.`
-    };
-  }),
+// Random helper for fallback variety
+function pickUnique<T>(arr: T[], count: number): T[] {
+  const pool = [...arr];
+  const out: T[] = [];
+  for (let i = 0; i < count && pool.length > 0; i++) {
+    const idx = Math.floor(Math.random() * pool.length);
+    out.push(pool.splice(idx, 1)[0]);
+  }
+  return out;
+}
+
+// Fallback questions (non-AI) in case Groq API fails; randomized to avoid repetition
+const fallbackQuestionSets: { [key: number]: () => Question[] } = {
+  1: () => pickUnique('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''), 5).map((letter, i) => ({
+    id: i + 1,
+    question: `Give me the hand image that expresses the alphabet '${letter}'`,
+    options: ["Capture Image"],
+    correctAnswer: letter,
+    explanation: `Capture a clear image of your hand forming the correct ISL handshape for '${letter}'.`
+  })),
+  2: () => pickUnique('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''), 5).map((letter, i) => ({
+    id: i + 1,
+    question: `Give me the hand image that expresses the alphabet '${letter}'`,
+    options: ["Capture Image"],
+    correctAnswer: letter,
+    explanation: `Capture a clear image of your hand forming the correct ISL handshape for '${letter}'.`
+  })),
+  3: () => pickUnique('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''), 5).map((letter, i) => ({
+    id: i + 1,
+    question: `Give me the hand image that expresses the alphabet '${letter}'`,
+    options: ["Capture Image"],
+    correctAnswer: letter,
+    explanation: `Capture a clear image of your hand forming the correct ISL handshape for '${letter}'.`
+  })),
+  4: () => pickUnique('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''), 5).map((letter, i) => ({
+    id: i + 1,
+    question: `Give me the hand image that expresses the alphabet '${letter}'`,
+    options: ["Capture Image"],
+    correctAnswer: letter,
+    explanation: `Capture a clear image of your hand forming the correct ISL handshape for '${letter}'.`
+  })),
+  5: () => pickUnique('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''), 5).map((letter, i) => ({
+    id: i + 1,
+    question: `Give me the hand image that expresses the alphabet '${letter}'`,
+    options: ["Capture Image"],
+    correctAnswer: letter,
+    explanation: `Capture a clear image of your hand forming the correct ISL handshape for '${letter}'.`
+  })),
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -82,8 +78,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log(`Successfully generated ${questions.length} questions with Groq AI`);
 
+    // Ensure exactly 5 questions are sent (randomize if more)
+    const shuffled = [...questions].sort(() => Math.random() - 0.5);
+    const five = shuffled.slice(0, 5).map((q, idx) => ({ ...q, id: idx + 1 }));
+
     res.status(200).json({
-      questions: questions,
+      questions: five,
       setId: setId,
       generated: new Date().toISOString(),
       aiGenerated: true,
@@ -108,10 +108,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     } catch (fallbackError) {
       // Final fallback to basic questions
-      const fallbackQuestions = fallbackQuestionSets[setId] || fallbackQuestionSets[1];
+      const generator = fallbackQuestionSets[setId] || fallbackQuestionSets[1];
+      const fallbackQuestions = generator();
 
       res.status(200).json({
-        questions: fallbackQuestions,
+  questions: fallbackQuestions,
         setId: setId,
         generated: new Date().toISOString(),
         aiGenerated: false,
@@ -163,8 +164,9 @@ async function generateEnhancedFallbackQuestions(setId: number): Promise<Questio
   };
 
   const letters = letterSets[setId as keyof typeof letterSets] || letterSets[1];
+  const chosen = pickUnique(letters, 5);
 
-  return letters.map((letter, index) => ({
+  return chosen.map((letter, index) => ({
     id: index + 1,
     question: `Give me the hand image that expresses the alphabet '${letter}'`,
     options: ["Capture Image"],
@@ -240,7 +242,7 @@ async function generateQuestionsWithGroq(setId: number): Promise<Question[]> {
   ];
   const selectedVariation = variationPrompts[Math.floor(Math.random() * variationPrompts.length)];
 
-  const prompt = `You are an expert Indian Sign Language (ISL) instructor. Generate exactly 10 UNIQUE questions for ${difficulty.level} level students.
+  const prompt = `You are an expert Indian Sign Language (ISL) instructor. Generate exactly 5 UNIQUE questions for ${difficulty.level} level students.
 
 SESSION: ${sessionId}
 CONTEXT: ${difficulty.context}
@@ -249,7 +251,7 @@ VARIATION INSTRUCTION: ${selectedVariation}
 SUGGESTED LETTERS (use some of these for variety): ${suggestedLetters.join(', ')}
 
 STRICT REQUIREMENTS:
-1) Generate EXACTLY 10 questions
+1) Generate EXACTLY 5 questions
 2) EVERY question MUST be an IMAGE-CAPTURE task with options strictly as ["Capture Image"]
 3) Each question MUST ask the learner to provide a hand image that expresses a specific ISL alphabet letter (A-Z)
 4) ENSURE VARIETY - Use different letters across questions, avoid repetition when possible
@@ -271,7 +273,7 @@ OUTPUT FORMAT (valid JSON only):
   ]
 }
 
-Generate the 10 VARIED questions now for Set ${setId} (${difficulty.level} level).`;
+Generate the 5 VARIED questions now for Set ${setId} (${difficulty.level} level).`;
 
   try {
     console.log('Sending request to Groq API...');
@@ -280,7 +282,7 @@ Generate the 10 VARIED questions now for Set ${setId} (${difficulty.level} level
       messages: [
         {
           role: "system",
-          content: "You are an expert Indian Sign Language (ISL) instructor. You must respond with valid JSON only, containing exactly 10 questions for image capture tasks. Ensure variety in letter selection for each session."
+          content: "You are an expert Indian Sign Language (ISL) instructor. You must respond with valid JSON only, containing exactly 5 questions for image capture tasks. Ensure variety in letter selection for each session."
         },
         {
           role: "user",
@@ -323,13 +325,13 @@ Generate the 10 VARIED questions now for Set ${setId} (${difficulty.level} level
       throw new Error('Invalid question format from Groq AI');
     }
 
-    // Validate and format questions with robust error handling
+  // Validate and format questions with robust error handling
     const questions: Question[] = [];
     const targetLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
 
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 5; i++) {
       const q = parsedResponse.questions[i] || {};
-      const fallbackLetter = targetLetters[(setId - 1) * 10 + i] || targetLetters[i] || 'A';
+      const fallbackLetter = targetLetters[(setId - 1) * 5 + i] || targetLetters[i] || 'A';
 
       questions.push({
         id: i + 1,
@@ -346,9 +348,9 @@ Generate the 10 VARIED questions now for Set ${setId} (${difficulty.level} level
       });
     }
 
-    // Final validation - ensure we have exactly 10 valid questions
-    if (questions.length !== 10) {
-      throw new Error(`Generated ${questions.length} questions instead of 10`);
+    // Final validation - ensure we have exactly 5 valid questions
+    if (questions.length !== 5) {
+      throw new Error(`Generated ${questions.length} questions instead of 5`);
     }
 
     return questions;

@@ -71,14 +71,21 @@ async function analyzeImageWithGemini(imageUrl: string, expectedLetter: string, 
                 console.log(`Trying Gemini model: ${modelName}`);
                 const model = genAI.getGenerativeModel({ model: modelName });
 
-                // Fetch the image
-                const imageResponse = await fetch(imageUrl);
-                if (!imageResponse.ok) {
-                    throw new Error('Failed to fetch image');
+                // Support both remote URLs and data URLs
+                let imageBase64: string;
+                if (imageUrl.startsWith('data:')) {
+                    // data:[<mediatype>][;base64],<data>
+                    const commaIdx = imageUrl.indexOf(',');
+                    imageBase64 = imageUrl.substring(commaIdx + 1);
+                } else {
+                    // Fetch the image from remote URL
+                    const imageResponse = await fetch(imageUrl);
+                    if (!imageResponse.ok) {
+                        throw new Error('Failed to fetch image');
+                    }
+                    const imageBuffer = await imageResponse.arrayBuffer();
+                    imageBase64 = Buffer.from(imageBuffer).toString('base64');
                 }
-
-                const imageBuffer = await imageResponse.arrayBuffer();
-                const imageBase64 = Buffer.from(imageBuffer).toString('base64');
 
                 const prompt = `You are an expert Indian Sign Language (ISL) instructor analyzing a student's hand gesture image.
 
