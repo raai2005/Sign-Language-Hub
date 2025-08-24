@@ -7,12 +7,15 @@ export interface CameraOptions {
   facingMode?: 'user' | 'environment';
   quality?: number;
   deviceId?: string;
+  audio?: boolean;
 }
 
 export class CameraCapture {
   private video: HTMLVideoElement | null = null;
   private canvas: HTMLCanvasElement | null = null;
   private stream: MediaStream | null = null;
+  private recorder: MediaRecorder | null = null;
+  private recordedChunks: Blob[] = [];
 
   constructor(
     private videoElement: HTMLVideoElement,
@@ -27,7 +30,8 @@ export class CameraCapture {
       width = 640,
       height = 480,
       facingMode = 'user',
-      deviceId
+      deviceId,
+      audio = false
     } = options;
 
     try {
@@ -37,7 +41,7 @@ export class CameraCapture {
 
       this.stream = await navigator.mediaDevices.getUserMedia({
         video: videoConstraints,
-        audio: false
+        audio
       });
 
       if (this.video) {
@@ -115,6 +119,92 @@ export class CameraCapture {
     }
   }
 
+  // Record a short video and return a Blob (with codec/mime fallbacks)
+  async recordVideo(durationMs: number = 5000, mimeType: string = 'video/webm'): Promise<Blob> {
+    if (!this.stream) {
+      throw new Error('Camera stream not started');
+    }
+    if (!('MediaRecorder' in window)) {
+      throw new Error('Recording not supported in this browser. Use Chrome/Edge on desktop and open the site over HTTPS or localhost.');
+    }
+
+    this.recordedChunks = [];
+
+    // Try supported mime types/codecs in order
+    const candidates = [
+      mimeType,
+      'video/webm;codecs=vp9',
+      'video/webm;codecs=vp8',
+      'video/webm',
+      // Some browsers advertise mp4 but don't allow it; guard with isTypeSupported
+      'video/mp4;codecs=avc1',
+      'video/mp4'
+    ];
+
+    let created = false;
+    for (const mt of candidates) {
+      try {
+        const isSupported = typeof (window as any).MediaRecorder?.isTypeSupported === 'function'
+          ? (window as any).MediaRecorder.isTypeSupported(mt)
+          : true;
+        if (!isSupported) continue;
+        this.recorder = new MediaRecorder(this.stream, mt ? { mimeType: mt } : undefined as any);
+        created = true;
+        break;
+      } catch {
+        // try next
+      }
+    }
+    if (!created) {
+      try {
+        this.recorder = new MediaRecorder(this.stream);
+        created = true;
+      } catch {
+        throw new Error('Unable to start recorder. Your browser may not support the required video codecs.');
+      }
+    }
+
+  const videoPromise = new Promise<Blob>((resolve, reject) => {
+      if (!this.recorder) return reject(new Error('Recorder init failed'));
+
+      this.recorder.ondataavailable = (e: BlobEvent) => {
+        if (e.data && e.data.size > 0) this.recordedChunks.push(e.data);
+      };
+      this.recorder.onerror = (e: Event) => {
+        const err: any = (e as any).error;
+        reject(err || new Error(`Recorder error${err && err.message ? ': ' + err.message : ''}`));
+      };
+      this.recorder.onstop = () => {
+        try {
+          const type = (this.recorder as any)?.mimeType || mimeType || 'video/webm';
+          const blob = new Blob(this.recordedChunks, { type });
+          resolve(blob);
+        } catch (err) {
+          reject(err);
+        }
+      };
+
+  // Start with a small timeslice so dataavailable fires periodically
+  this.recorder.start(1000);
+      setTimeout(() => {
+        try { this.recorder && this.recorder.state !== 'inactive' && this.recorder.stop(); } catch { /* no-op */ }
+      }, durationMs);
+    });
+
+    return videoPromise;
+  }
+
+  // Stop recording immediately (if active). The promise returned by recordVideo will resolve on stop.
+  stopRecordingNow(): void {
+    try {
+      if (this.recorder && this.recorder.state !== 'inactive') {
+        this.recorder.stop();
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   stopCamera(): void {
     if (this.stream) {
       this.stream.getTracks().forEach(track => track.stop());
@@ -124,20 +214,20 @@ export class CameraCapture {
     if (this.video) {
       this.video.srcObject = null;
     }
+
+    if (this.recorder && this.recorder.state !== 'inactive') {
+      try { this.recorder.stop(); } catch { /* ignore */ }
+    }
+    this.recorder = null;
+    this.recordedChunks = [];
   }
 
   async uploadImage(imageData: string, questionId: number, setId: number): Promise<string> {
     try {
       const response = await fetch('/api/upload-image', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          imageData,
-          questionId,
-          setId
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageData, questionId, setId }),
       });
 
       if (!response.ok) {
@@ -149,6 +239,22 @@ export class CameraCapture {
     } catch (error) {
       console.error('Error uploading image:', error);
       throw new Error('Failed to upload image. Please try again.');
+    }
+  }
+
+  async uploadVideo(videoData: string, questionId: number, setId: number): Promise<string> {
+    try {
+      const response = await fetch('/api/upload-video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoData, questionId, setId })
+      });
+      if (!response.ok) throw new Error('Failed to upload video');
+      const result = await response.json();
+      return result.videoUrl;
+    } catch (error) {
+      console.error('Error uploading video:', error);
+      throw new Error('Failed to upload video. Please try again.');
     }
   }
 }
