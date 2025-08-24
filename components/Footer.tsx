@@ -7,7 +7,7 @@ const Footer = () => {
           <div className="w-64 h-2 bg-gray-800"></div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
+  <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12">
           {/* Brand Section */}
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center space-x-4 mb-6">
@@ -40,17 +40,17 @@ const Footer = () => {
                 </a>
               </li>
               <li>
-                <a href="/learn" className="classic-subtitle hover:text-gray-800 transition-colors block py-1">
+                <a href="/learn" className="classic-subtitle hover:text-gray-800 transition-colors block py-1 wrap-anywhere">
                   → Learn Alphabet
                 </a>
               </li>
               <li>
-                <a href="/exam" className="classic-subtitle hover:text-gray-800 transition-colors block py-1">
+                <a href="/exam" className="classic-subtitle hover:text-gray-800 transition-colors block py-1 wrap-anywhere">
                   → Examinations
                 </a>
               </li>
               <li>
-                <a href="/about" className="classic-subtitle hover:text-gray-800 transition-colors block py-1">
+                <a href="/about" className="classic-subtitle hover:text-gray-800 transition-colors block py-1 wrap-anywhere">
                   → About Academy
                 </a>
               </li>
@@ -64,22 +64,22 @@ const Footer = () => {
             </h3>
             <ul className="space-y-3">
               <li>
-                <a href="#" className="classic-subtitle hover:text-gray-800 transition-colors block py-1">
+                <a href="#" className="classic-subtitle hover:text-gray-800 transition-colors block py-1 wrap-anywhere">
                   → ISL Dictionary
                 </a>
               </li>
               <li>
-                <a href="#" className="classic-subtitle hover:text-gray-800 transition-colors block py-1">
+                <a href="#" className="classic-subtitle hover:text-gray-800 transition-colors block py-1 wrap-anywhere">
                   → Practice Materials
                 </a>
               </li>
               <li>
-                <a href="#" className="classic-subtitle hover:text-gray-800 transition-colors block py-1">
+                <a href="#" className="classic-subtitle hover:text-gray-800 transition-colors block py-1 wrap-anywhere">
                   → Student Forum
                 </a>
               </li>
               <li>
-                <a href="#" className="classic-subtitle hover:text-gray-800 transition-colors block py-1">
+                <a href="#" className="classic-subtitle hover:text-gray-800 transition-colors block py-1 wrap-anywhere">
                   → Contact Faculty
                 </a>
               </li>

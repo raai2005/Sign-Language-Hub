@@ -178,6 +178,11 @@ body.modal-open .modal-card * {
     2px 2px 0px #6d5b47,
     4px 4px 0px #5a4a3a;
   position: relative;
+  /* Align icons/emojis with text */
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  line-height: 1.25;
 }
 
 .btn-classic-primary:hover {
@@ -209,6 +214,11 @@ body.modal-open .modal-card * {
   box-shadow:
     2px 2px 0px #8b7355,
     4px 4px 0px #c4b8a0;
+  /* Align icons/emojis with text */
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  line-height: 1.25;
 }
 
 .btn-classic-secondary:hover {
@@ -236,6 +246,19 @@ body.modal-open .modal-card * {
     2px 2px 0px #cccccc,
     4px 4px 0px #e5e5e5;
   opacity: 0.6;
+  /* Align icons/emojis with text */
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  line-height: 1.25;
+}
+
+/* Normalize icon/emoji vertical alignment inside classic buttons */
+.btn-classic-primary > svg,
+.btn-classic-secondary > svg,
+.btn-classic-disabled > svg {
+  vertical-align: middle;
+  display: inline-block;
 }
 
 /* Mirror camera preview for natural user experience */
@@ -330,6 +353,10 @@ body.modal-open .modal-card * {
   font-family: 'Georgia', serif;
   color: #5a4a3a;
   font-style: italic;
+  /* Ensure text wraps nicely on small screens */
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  hyphens: auto;
 }
 
 /* Classic Navigation */
@@ -542,4 +569,11 @@ h6 {
 
 .focus-ring {
   @apply classic-focus;
+}
+
+/* Utility: force wrapping anywhere to avoid overflow in tight boxes */
+.wrap-anywhere {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  hyphens: auto;
 }

@@ -40,7 +40,7 @@ export default function Home() {
                 </h1>
               </div>
               <div className="max-w-4xl mx-auto mb-12">
-                <p className="text-xl classic-subtitle text-center leading-relaxed border-l-4 border-gray-800 pl-6 italic">
+                <p className="text-xl classic-subtitle text-center leading-relaxed border-l-4 border-gray-800 pl-6 italic wrap-anywhere">
                   "Master Indian Sign Language (ISL) through our time-tested, methodical approach. 
                   Designed for beginners and advanced learners who appreciate structured, comprehensive education 
                   in the art of sign language communication."
@@ -81,7 +81,7 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
               <div className="old-school-card p-8 text-center">
                 <div className="w-24 h-24 bg-gray-800 border-4 border-gray-600 flex items-center justify-center mx-auto mb-6">
                   <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">

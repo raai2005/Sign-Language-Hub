@@ -3,6 +3,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import { getProgress, isLetterCompleted, toggleLetter, onProgressChange, markLetter } from '../lib/progress';
 
 interface Letter {
   id: string;
@@ -19,6 +20,8 @@ export default function Learn() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLetter, setSelectedLetter] = useState<Letter | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [completedCount, setCompletedCount] = useState(0);
+  const [videoError, setVideoError] = useState(false);
 
   // ISL Alphabet with local images from alphabets-images folder
   const islAlphabet: Letter[] = [
@@ -185,6 +188,16 @@ export default function Learn() {
     setLetters(islAlphabet);
     setFilteredLetters(islAlphabet);
     setLoading(false);
+    // Initialize progress
+    const p = getProgress();
+    setCompletedCount(islAlphabet.filter(l => p.completedLetters.includes(l.id)).length);
+    // Listen for cross-tab updates
+    const off = onProgressChange((data) => {
+      setCompletedCount(islAlphabet.filter(l => data.completedLetters.includes(l.id)).length);
+    });
+    return () => {
+      off();
+    };
   }, []);
 
   useEffect(() => {
@@ -215,6 +228,7 @@ export default function Learn() {
     console.log('Selected letter:', letter);
     setSelectedLetter(letter);
     setShowModal(true);
+  setVideoError(false);
   };
 
   const closeModal = () => {
@@ -279,46 +293,7 @@ export default function Learn() {
           </div>
         </section>
 
-        {/* Search and Filter */}
-        <section className="classic-bg-dark border-b-4 border-gray-800">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <div className="max-w-lg mx-auto mb-8">
-              <div className="old-school-card p-1">
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <svg className="h-6 w-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="SEARCH LETTERS..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="block w-full pl-14 pr-4 py-4 border-4 border-gray-800 bg-white placeholder-gray-600 classic-focus text-xl font-bold uppercase tracking-wide"
-                    style={{ fontFamily: 'Georgia, serif' }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Category Filter */}
-            <div className="flex flex-wrap justify-center gap-4">
-              {categories.map((category) => (
-                <button
-                  key={category.id}
-                  onClick={() => setSelectedCategory(category.id)}
-                  className={`${selectedCategory === category.id
-                      ? 'btn-classic-primary'
-                      : 'btn-classic-secondary'
-                    }`}
-                >
-                  {category.name} ({category.count})
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
+  {/* Search area removed by request */}
 
         {/* Letters Grid */}
         <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -339,18 +314,25 @@ export default function Learn() {
               {filteredLetters.map((letter) => (
                 <div
                   key={letter.id}
-                  className="classic-letter-card bg-white p-6 cursor-pointer text-center"
+                  className="classic-letter-card bg-white p-6 cursor-pointer text-center h-full flex flex-col"
                   onClick={() => handleLetterClick(letter)}
                 >
-                  <div className="mb-6">
-                    <div className="w-20 h-20 bg-gray-800 border-4 border-gray-600 flex items-center justify-center mx-auto mb-4">
-                      <span className="text-3xl font-bold text-white" style={{ fontFamily: 'Georgia, serif' }}>{letter.letter}</span>
+                  <div className="flex flex-col h-full">
+                    <div className="flex-1">
+                      <div className="w-20 h-20 bg-gray-800 border-4 border-gray-600 flex items-center justify-center mx-auto mb-4">
+                        <span className="text-3xl font-bold text-white" style={{ fontFamily: 'Georgia, serif' }}>{letter.letter}</span>
+                      </div>
+                      <div className="flex items-center justify-center gap-2 mb-3">
+                        <h3 className="text-2xl font-bold classic-title uppercase">Letter {letter.letter}</h3>
+                        {isLetterCompleted(letter.id) && (
+                          <span className="inline-flex items-center text-xs font-semibold px-2 py-1 border-2 border-green-700 bg-green-200 text-green-900">COMPLETED</span>
+                        )}
+                      </div>
+                      <div className="border-l-4 border-gray-800 pl-4 mb-6 text-left">
+                        <p className="text-sm classic-subtitle leading-relaxed wrap-anywhere">{letter.description}</p>
+                      </div>
                     </div>
-                    <h3 className="text-2xl font-bold classic-title mb-3 uppercase">Letter {letter.letter}</h3>
-                    <div className="border-l-4 border-gray-800 pl-4 mb-6">
-                      <p className="text-sm classic-subtitle leading-relaxed">{letter.description}</p>
-                    </div>
-                    <button className="btn-classic-primary w-full">
+                    <button className="btn-classic-primary w-full mt-2 justify-center">
                       VIEW DEMONSTRATION
                     </button>
                   </div>
@@ -375,13 +357,39 @@ export default function Learn() {
                   <div className="classic-subtitle uppercase tracking-wide">Letters Available</div>
                 </div>
                 <div className="old-school-card p-6 text-center">
-                  <div className="text-5xl font-bold classic-title mb-2">0</div>
+                  <div className="text-5xl font-bold classic-title mb-2">{completedCount}</div>
                   <div className="classic-subtitle uppercase tracking-wide">Completed</div>
                 </div>
                 <div className="old-school-card p-6 text-center">
                   <div className="text-5xl font-bold classic-title mb-2">26</div>
                   <div className="classic-subtitle uppercase tracking-wide">Total ISL Letters</div>
                 </div>
+              </div>
+              <div className="mt-8 w-full flex flex-col sm:flex-row items-center justify-center gap-4">
+                <button
+                  className="btn-classic-secondary w-full sm:w-auto"
+                  onClick={() => {
+                    // mark all as complete
+                    try {
+                      const all = islAlphabet.map(l => l.id);
+                      window.localStorage.setItem('isl_progress_v1', JSON.stringify({ completedLetters: all, updatedAt: Date.now() }));
+                      setCompletedCount(all.length);
+                    } catch {}
+                  }}
+                >
+                  MARK ALL COMPLETE
+                </button>
+                <button
+                  className="btn-classic-secondary w-full sm:w-auto"
+                  onClick={() => {
+                    try {
+                      window.localStorage.setItem('isl_progress_v1', JSON.stringify({ completedLetters: [], updatedAt: Date.now() }));
+                      setCompletedCount(0);
+                    } catch {}
+                  }}
+                >
+                  RESET PROGRESS
+                </button>
               </div>
             </div>
           </div>
@@ -431,7 +439,7 @@ export default function Learn() {
                     </div>
                     <div>
                       <h2 className="text-2xl font-bold high-contrast-text">{selectedLetter.letter}</h2>
-                      <p className="text-gray-600">{selectedLetter.description}</p>
+                      <p className="text-gray-600 wrap-anywhere">{selectedLetter.description}</p>
                     </div>
                   </div>
                   <button
@@ -444,35 +452,99 @@ export default function Learn() {
                   </button>
                 </div>
 
-                {/* Main Hand Image */}
-                <div className="mb-8 classic-bg old-school-card p-6">
-                  <div className="flex justify-center">
-                    <img
-                      src={selectedLetter.handImage}
-                      alt={`Letter ${selectedLetter.letter} hand position`}
-                      className="w-64 h-64 object-contain border-4 border-gray-800 sign-language-image"
-                      onLoad={(e) => {
-                        // Image loaded successfully
-                        e.currentTarget.style.opacity = '1';
-                      }}
-                      onError={(e) => {
-                        // Fallback to a simple colored div if image fails to load
-                        e.currentTarget.style.display = 'none';
-                        const fallbackDiv = document.createElement('div');
-                        fallbackDiv.className = 'w-64 h-64 classic-primary-bg border-4 border-gray-800 flex items-center justify-center';
-                        fallbackDiv.innerHTML = `
-                          <div class="text-center text-white">
-                            <div class="text-6xl font-bold mb-2">${selectedLetter.letter}</div>
-                            <div class="text-sm">Hand Position</div>
-                          </div>
-                        `;
-                        e.currentTarget.parentNode?.appendChild(fallbackDiv);
-                      }}
-                      style={{ opacity: 0, transition: 'opacity 0.3s ease-in-out' }}
-                      loading="eager"
-                      decoding="async"
-                    />
+                {/* Side-by-side: Hand Image (left) and Demonstration Video (right) */}
+                <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="classic-bg old-school-card p-6">
+                    <h3 className="text-xl font-bold classic-title mb-4 uppercase">Hand Position</h3>
+                    <div className="flex justify-center">
+                      <img
+                        src={selectedLetter.handImage}
+                        alt={`Letter ${selectedLetter.letter} hand position`}
+                        className="w-64 h-64 object-contain border-4 border-gray-800 sign-language-image"
+                        onLoad={(e) => {
+                          e.currentTarget.style.opacity = '1';
+                        }}
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          const fallbackDiv = document.createElement('div');
+                          fallbackDiv.className = 'w-64 h-64 classic-primary-bg border-4 border-gray-800 flex items-center justify-center';
+                          fallbackDiv.innerHTML = `
+                            <div class="text-center text-white">
+                              <div class="text-6xl font-bold mb-2">${selectedLetter.letter}</div>
+                              <div class="text-sm">Hand Position</div>
+                            </div>
+                          `;
+                          e.currentTarget.parentNode?.appendChild(fallbackDiv);
+                        }}
+                        style={{ opacity: 0, transition: 'opacity 0.3s ease-in-out' }}
+                        loading="eager"
+                        decoding="async"
+                      />
+                    </div>
                   </div>
+                  <div className="classic-bg old-school-card p-6">
+                    <h3 className="text-xl font-bold classic-title mb-4 uppercase">Demonstration Video</h3>
+                    {videoError ? (
+                      <div className="text-center">
+                        <div className="w-full border-4 border-yellow-700 bg-yellow-100 text-yellow-900 p-4">
+                          <div className="flex items-start gap-3">
+                            <svg className="w-6 h-6 text-yellow-800 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <p className="text-sm">
+                              Demo video not available yet for letter {selectedLetter.letter}. Place a file at
+                              <span className="font-semibold"> /public/videos/letters/{selectedLetter.letter.toUpperCase()}.mp4</span> to enable playback.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex justify-center">
+                        <video
+                          key={selectedLetter.id}
+                          className="w-full max-w-2xl border-4 border-gray-800 classic-video-player"
+                          controls
+                          preload="metadata"
+                          poster={selectedLetter.handImage}
+                          playsInline
+                          disablePictureInPicture
+                          controlsList="nodownload noplaybackrate noremoteplayback"
+                          disableRemotePlayback
+                          onError={() => setVideoError(true)}
+                          onEnded={() => {
+                            // Auto-mark complete on successful watch
+                            if (!isLetterCompleted(selectedLetter.id)) {
+                              markLetter(selectedLetter.id, true);
+                              setCompletedCount((prev) => prev + 1);
+                            }
+                          }}
+                        >
+                          <source src={`/videos/letters/${selectedLetter.letter.toUpperCase()}.mp4`} type="video/mp4" />
+                          <source src={`/videos/letters/${selectedLetter.letter.toUpperCase()}.webm`} type="video/webm" />
+                          Your browser does not support the video tag.
+                        </video>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="px-6 pb-6">
+                <div className="mt-4 flex items-center justify-between">
+                  <div>
+                    {selectedLetter && isLetterCompleted(selectedLetter.id) ? (
+                      <span className="inline-flex items-center text-xs font-semibold px-2 py-1 border-2 border-green-700 bg-green-200 text-green-900">MARKED AS COMPLETED</span>
+                    ) : (
+                      <span className="inline-flex items-center text-xs font-semibold px-2 py-1 border-2 border-yellow-700 bg-yellow-200 text-yellow-900">NOT COMPLETED</span>
+                    )}
+                  </div>
+                  <button
+                    className="btn-classic-primary"
+                    onClick={() => {
+                      if (!selectedLetter) return;
+                      const nowCompleted = toggleLetter(selectedLetter.id);
+                      setCompletedCount((prev) => prev + (nowCompleted ? 1 : -1));
+                    }}
+                  >
+                    {selectedLetter && isLetterCompleted(selectedLetter.id) ? 'UNDO COMPLETE' : 'MARK COMPLETE'}
+                  </button>
                 </div>
               </div>
             </div>
